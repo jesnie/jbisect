@@ -1,0 +1,65 @@
+name: test_release
+
+on:
+  push:
+  release:
+    types: [published]
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: ["3.12"]
+
+    name: test-${{ matrix.python }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python }}
+      - run: curl -sSL https://install.python-poetry.org | python3 -
+      - run: poetry install --all-extras
+      - run: poetry run task test
+
+  test-install:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: ["3.12"]
+
+    name: test-install-${{ matrix.python }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python }}
+      - run: curl -sSL https://install.python-poetry.org | python3 -
+      - run: poetry install --only main
+      - run: poetry run python -c "import jbisect"
+
+  all-tests:
+    needs: [tests, test-install]
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo ok
+
+  publish:
+    needs: all-tests
+    if: github.event_name == 'release'
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/jbisect
+    permissions:
+      id-token: write  # IMPORTANT: this permission is mandatory for trusted publishing
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.12"
+      - run: curl -sSL https://install.python-poetry.org | python3 -
+      - run: poetry install
+      - run: poetry run python set_version.py "${{github.ref_name}}"
+      - run: poetry build
+      - uses: pypa/gh-action-pypi-publish@release/v1

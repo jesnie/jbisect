@@ -1,0 +1,104 @@
+[tool.poetry]
+name = "jbisect"
+version = "0.1.0"
+description = "A python package for binary search"
+authors = ["Jesper Nielsen <jespernielsen1982+jbisect@gmail.com>"]
+license = "MIT"
+readme = "README.md"
+
+homepage = "https://github.com/jesnie/jbisect"
+repository = "https://github.com/jesnie/jbisect"
+
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Typing :: Typed",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+]
+
+[tool.poetry.dependencies]
+python = "<4,>=3.12"
+
+
+[tool.poetry.group.dev.dependencies]
+black = "<24.5,>=24.4"
+compreq = "<0.3.2,>=0.3.1"
+isort = "<5.14,>=5.13"
+mypy = "<1.12,>=1.11"
+pylint = "<3.3,>=3.2"
+pytest = "<8.3,>=8.2"
+taskipy = "<1.14,>=1.13"
+tomlkit = "<0.13.1,>=0.13.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+
+[tool.isort]
+py_version = 312
+profile = "black"
+
+[tool.black]
+target-version = ["py312"]
+line-length = 100
+
+[tool.mypy]
+python_version = "3.12"
+show_error_codes = true
+strict = true
+
+[[tool.mypy.overrides]]
+module = [
+]
+ignore_missing_imports = true
+
+[tool.pylint.messages_control]
+max-line-length = 100
+disable = [
+    "c-extension-no-member",
+    "global-statement",
+    "invalid-name",
+    "missing-function-docstring",
+    "missing-module-docstring",
+    "no-member",
+]
+
+
+[tool.taskipy.tasks]
+isort = """
+    echo XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX isort XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+    isort jbisect tests set_version.py requirements.py
+"""
+isort_check = """
+    echo XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX isort XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+    isort --check-only jbisect tests set_version.py requirements.py
+"""
+black = """
+    echo XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX black XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+    black jbisect tests set_version.py requirements.py
+"""
+black_check = """
+    echo XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX black XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+    black --check jbisect tests set_version.py requirements.py
+"""
+mypy = """
+    echo XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX mypy XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+    mypy jbisect tests set_version.py requirements.py
+"""
+pylint = """
+    echo XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX pylint XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+    pylint jbisect tests set_version.py requirements.py
+"""
+pytest = """
+    echo XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX pytest XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+    pytest tests
+"""
+
+format = "task isort && task black"
+format_check = "task isort_check && task black_check"
+lint = "task format_check && task mypy && task pylint"
+test = "task lint && task pytest"
+format_and_lint = "task format && task lint"
+format_and_test = "task format && task test"
