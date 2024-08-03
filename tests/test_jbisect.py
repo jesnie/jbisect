@@ -15,6 +15,7 @@ from jbisect import (
     bisect_int_bool_fn,
     bisect_int_fn,
     bisect_seq,
+    prev_float,
 )
 
 ROOT = Path(__file__).parent
@@ -80,10 +81,6 @@ def slf(_: N) -> CallRecorder[N, N]:
 
 def neg(_: N) -> CallRecorder[N, N]:
     return CallRecorder(lambda y: -y)
-
-
-def float_prev(x: float) -> float:
-    return nextafter(x, -inf)
 
 
 def clamp(low: N | None, high: N | None, value: N, side: Side) -> N:
@@ -206,7 +203,7 @@ def make_float_cases(
             low=low_,
             high=high_,
             ordering="ascending",
-            expected_value=clamp(low_, high_, float_prev(value), "right"),
+            expected_value=clamp(low_, high_, prev_float(value), "right"),
             max_n_calls=max_n_calls,
         )
         yield Case(
@@ -216,7 +213,7 @@ def make_float_cases(
             low=low_,
             high=high_,
             ordering="descending",
-            expected_value=clamp(low_, high_, float_prev(value), "right"),
+            expected_value=clamp(low_, high_, prev_float(value), "right"),
             max_n_calls=max_n_calls,
         )
         for side, value_, name__ in iter_sides(value, value, name_):

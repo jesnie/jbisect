@@ -30,6 +30,18 @@ Side: TypeAlias = Literal["left", "right"]
 Ordering: TypeAlias = Literal["ascending", "descending"]
 
 
+def prev_int(i: int) -> int:
+    return i - 1
+
+
+def prev_float(x: float) -> float:
+    return nextafter(x, -inf)
+
+
+def prev_num(x: N) -> N:
+    return prev_int(x) if isinstance(x, int) else prev_float(x)
+
+
 def make_pred(
     fn: Callable[[N], L], target: L, side: Side, ordering: Ordering
 ) -> Callable[[N], bool]:
@@ -124,8 +136,8 @@ def bisect_int_bool_fn(
             return low
 
     if high is not None:
-        if pred(high - 1):
-            print("No invalid interval", high, pred(high - 1))
+        if pred(prev_int(high)):
+            print("No invalid interval", high, pred(prev_int(high)))
             return high
 
     while True:
@@ -201,14 +213,14 @@ def bisect_float_bool_fn(
     if not pred(low):
         print("No valid interval")
         return low
-    if pred(nextafter(high, -inf)):
+    if pred(prev_float(high)):
         print("No invalid interval")
         return high
 
     while True:
         mid = _float_mid(low, high)
         if mid == high:  # Deal with rounding up...
-            mid = nextafter(mid, -inf)
+            mid = prev_float(high)
         if _DEBUG:
             print("low", low, "high", high, "mid", mid)
         if mid == low:
