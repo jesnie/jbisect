@@ -86,27 +86,27 @@ disable = [
 [tool.taskipy.tasks]
 isort = """
     echo XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX isort XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-    isort jbisect tests set_version.py requirements.py
+    isort jbisect examples tests set_version.py requirements.py
 """
 isort_check = """
     echo XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX isort XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-    isort --check-only jbisect tests set_version.py requirements.py
+    isort --check-only jbisect examples tests set_version.py requirements.py
 """
 black = """
     echo XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX black XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-    black jbisect tests set_version.py requirements.py
+    black jbisect examples tests set_version.py requirements.py
 """
 black_check = """
     echo XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX black XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-    black --check jbisect tests set_version.py requirements.py
+    black --check jbisect examples tests set_version.py requirements.py
 """
 mypy = """
     echo XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX mypy XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-    mypy jbisect tests set_version.py requirements.py
+    mypy jbisect examples tests set_version.py requirements.py
 """
 pylint = """
     echo XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX pylint XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-    pylint jbisect tests set_version.py requirements.py
+    pylint jbisect examples tests set_version.py requirements.py
 """
 pytest = """
     echo XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX pytest XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX

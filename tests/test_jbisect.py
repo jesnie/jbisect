@@ -10,12 +10,11 @@ import pytest
 from jbisect import (
     Ordering,
     Side,
-    bisect_float_bool_fn,
     bisect_float_fn,
-    bisect_int_bool_fn,
+    bisect_float_pred,
     bisect_int_fn,
+    bisect_int_pred,
     bisect_seq,
-    prev_float,
 )
 
 ROOT = Path(__file__).parent
@@ -34,8 +33,9 @@ Json: TypeAlias = Any
 
 class CallRecorder(Generic[T, R]):
 
-    def __init__(self, fn: Callable[[T], R]) -> None:
+    def __init__(self, fn: Callable[[T], R], name: str) -> None:
         self._fn = fn
+        self._name = name
         self.calls: list[T] = []
 
     def reset(self) -> None:
@@ -45,21 +45,20 @@ class CallRecorder(Generic[T, R]):
         self.calls.append(p)
         return self._fn(p)
 
+    def __repr__(self) -> str:
+        return self._name
+
     @property
     def n_calls(self) -> int:
         return len(self.calls)
 
 
+def gt(x: N) -> CallRecorder[N, bool]:
+    return CallRecorder(lambda y: y > x, f"gt({x})")
+
+
 def le(x: N) -> CallRecorder[N, bool]:
-    return CallRecorder(lambda y: y <= x)
-
-
-def lt(x: N) -> CallRecorder[N, bool]:
-    return CallRecorder(lambda y: y < x)
-
-
-def ge(x: N) -> CallRecorder[N, bool]:
-    return CallRecorder(lambda y: y >= x)
+    return CallRecorder(lambda y: y <= x, f"le({x})")
 
 
 def itv(frm: N, to: N) -> CallRecorder[N, N]:
@@ -72,15 +71,15 @@ def itv(frm: N, to: N) -> CallRecorder[N, N]:
             sub = to
         return x - sub
 
-    return CallRecorder(f)
+    return CallRecorder(f, f"itv({frm}, {to})")
 
 
-def slf(_: N) -> CallRecorder[N, N]:
-    return CallRecorder(lambda y: y)
+def slf(x: N) -> CallRecorder[N, N]:
+    return CallRecorder(lambda y: y, f"slf({x})")
 
 
-def neg(_: N) -> CallRecorder[N, N]:
-    return CallRecorder(lambda y: -y)
+def neg(x: N) -> CallRecorder[N, N]:
+    return CallRecorder(lambda y: -y, f"neg({x})")
 
 
 def clamp(low: N | None, high: N | None, value: N, side: Side) -> N:
@@ -144,8 +143,12 @@ class Case(Generic[P, R]):
         n_calls = max((cr.n_calls for cr in self._call_recorders), default=0)
         assert n_calls <= self._max_n_calls, (n_calls, self._max_n_calls)
 
+        arg_exprs = [f"{a!r}" for a in self._args] + [f"{n}={a!r}" for n, a in self._kwargs.items()]
+        expr = f"{self._target.__name__}({', '.join(arg_exprs)})"
+
         return {
-            "value": value,
+            "expr": expr,
+            "result": value,
             "n_calls": n_calls,
         }
 
@@ -187,9 +190,9 @@ def make_float_cases(
 ) -> CaseIter:
     for low_, high_, name_ in iter_limits(low, high, name):
         yield Case(
-            f"le_{name_}",
-            bisect_float_bool_fn,
-            le(value),
+            f"gt_{name_}",
+            bisect_float_pred,
+            gt(value),
             low=low_,
             high=high_,
             ordering="ascending",
@@ -197,23 +200,13 @@ def make_float_cases(
             max_n_calls=max_n_calls,
         )
         yield Case(
-            f"lt_{name_}",
-            bisect_float_bool_fn,
-            lt(value),
-            low=low_,
-            high=high_,
-            ordering="ascending",
-            expected_value=clamp(low_, high_, prev_float(value), "right"),
-            max_n_calls=max_n_calls,
-        )
-        yield Case(
-            f"ge_{name_}",
-            bisect_float_bool_fn,
-            ge(value),
+            f"le_{name_}",
+            bisect_float_pred,
+            le(value),
             low=low_,
             high=high_,
             ordering="descending",
-            expected_value=clamp(low_, high_, prev_float(value), "right"),
+            expected_value=clamp(low_, high_, value, "right"),
             max_n_calls=max_n_calls,
         )
         for side, value_, name__ in iter_sides(value, value, name_):
@@ -284,9 +277,9 @@ def make_int_cases(
 ) -> CaseIter:
     for low_, high_, name_ in iter_limits(low, high, name):
         yield Case(
-            "le_" + name_,
-            bisect_int_bool_fn,
-            le(value),
+            "gt_" + name_,
+            bisect_int_pred,
+            gt(value),
             low=low_,
             high=high_,
             ordering="ascending",
@@ -294,13 +287,13 @@ def make_int_cases(
             max_n_calls=int_max_n_calls,
         )
         yield Case(
-            "ge_" + name_,
-            bisect_int_bool_fn,
-            ge(value),
+            "le_" + name_,
+            bisect_int_pred,
+            le(value),
             low=low_,
             high=high_,
             ordering="descending",
-            expected_value=clamp(low_, high_, value - 1, "right"),
+            expected_value=clamp(low_, high_, value, "right"),
             max_n_calls=int_max_n_calls,
         )
         for side, value_, name__ in iter_sides(value, value, name_):
@@ -486,10 +479,10 @@ def make_cases() -> tuple[AnyCase, ...]:
 
 CASES = make_cases()
 ONLY: set[Callable[..., Any]] | None
-# ONLY = {bisect_int_bool_fn}
-# ONLY = {bisect_int_bool_fn, bisect_int_fn, bisect_seq}
-# ONLY = {bisect_float_bool_fn}
-# ONLY = {bisect_float_bool_fn, bisect_float_fn}
+# ONLY = {bisect_int_pred}
+# ONLY = {bisect_int_pred, bisect_int_fn, bisect_seq}
+# ONLY = {bisect_float_pred}
+# ONLY = {bisect_float_pred, bisect_float_fn}
 ONLY = None
 
 
@@ -521,6 +514,74 @@ def test_bisect(case: AnyCase) -> None:
     result = case.test()
     records = read_records()
     assert records[case.__name__] == result
+
+
+def test_bisect_int_pred() -> None:
+    assert bisect_int_pred(lambda i: i >= 4) == 4
+
+    assert bisect_int_pred(lambda i: i >= 4, low=4) == 4
+    assert bisect_int_pred(lambda i: i >= 4, low=5) == 5
+
+    assert bisect_int_pred(lambda i: i >= 4, high=4) == 4
+    assert bisect_int_pred(lambda i: i >= 4, high=3) == 3
+
+    assert bisect_int_pred(lambda i: i < 4, ordering="descending") == 4
+
+
+def test_bisect_int_fn() -> None:
+    assert bisect_int_fn(lambda i: i * i, 16) == 4
+
+    assert bisect_int_fn(lambda i: i * i, 16, low=4) == 4
+    assert bisect_int_fn(lambda i: i * i, 16, low=5) == 5
+
+    assert bisect_int_fn(lambda i: i * i, 16, high=4) == 4
+    assert bisect_int_fn(lambda i: i * i, 16, high=3) == 3
+
+    assert bisect_int_fn(lambda i: i * i, 16, side="right") == 5
+
+    assert bisect_int_fn(lambda i: -i * i, -16, ordering="descending") == 4
+
+
+def test_bisect_seq() -> None:
+    assert bisect_seq("", "2") == 0
+    assert bisect_seq("2", "2") == 0
+    assert bisect_seq("011222355", "2") == 3
+
+    assert bisect_seq("011222355", "2", low=3) == 3
+    assert bisect_seq("011222355", "2", low=4) == 4
+
+    assert bisect_seq("011222355", "2", high=3) == 3
+    assert bisect_seq("011222355", "2", high=2) == 2
+
+    assert bisect_seq("011222355", "2", side="right") == 6
+
+    assert bisect_seq("553222110", "2", ordering="descending") == 3
+
+
+def test_bisect_float_pred() -> None:
+    assert bisect_float_pred(lambda i: i >= 4.0) == 4.0
+
+    assert bisect_float_pred(lambda i: i >= 4.0, low=4.0) == 4.0
+    assert bisect_float_pred(lambda i: i >= 4.0, low=5.0) == 5.0
+
+    assert bisect_float_pred(lambda i: i >= 4.0, high=4.0) == 4.0
+    assert bisect_float_pred(lambda i: i >= 4.0, high=3.0) == 3.0
+
+    assert bisect_float_pred(lambda i: i < 4.0, ordering="descending") == 4.0
+
+
+def test_bisect_float_fn() -> None:
+    assert bisect_float_fn(lambda i: i * i, 16.0) == 4.0
+
+    assert bisect_float_fn(lambda i: i * i, 16.0, low=4.0) == 4.0
+    assert bisect_float_fn(lambda i: i * i, 16.0, low=5.0) == 5.0
+
+    assert bisect_float_fn(lambda i: i * i, 16.0, high=4.0) == 4.0
+    assert bisect_float_fn(lambda i: i * i, 16.0, high=3.0) == 3.0
+
+    assert bisect_float_fn(lambda i: i * i, 16.0, side="right") == nextafter(4.0, inf)
+
+    assert bisect_float_fn(lambda i: -i * i, -16.0, ordering="descending") == 4.0
 
 
 if __name__ == "__main__":

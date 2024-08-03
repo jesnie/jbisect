@@ -82,27 +82,27 @@ def _float_suggest(low: float | None, high: float | None) -> float:
     return mid
 
 
-def make_pred(
+def _make_pred(
     fn: Callable[[N], L], target: L, side: Side, ordering: Ordering
 ) -> Callable[[N], bool]:
     if ordering == "ascending":
         if side == "left":
-            return lambda x: fn(x) < target
-        elif side == "right":
-            if hasattr(target, "__le__"):
-                return lambda x: fn(x) <= target  # type: ignore[operator]
-            else:
-                return lambda x: (y := fn(x)) < target or y == target
-        else:
-            assert_never(side)
-    elif ordering == "descending":
-        if side == "left":
-            return lambda x: target < fn(x)
-        elif side == "right":
             if hasattr(target, "__le__"):
                 return lambda x: target <= fn(x)
             else:
                 return lambda x: target < (y := fn(x)) or target == y
+        elif side == "right":
+            return lambda x: target < fn(x)
+        else:
+            assert_never(side)
+    elif ordering == "descending":
+        if side == "left":
+            if hasattr(target, "__le__"):
+                return lambda x: fn(x) <= target  # type: ignore[operator]
+            else:
+                return lambda x: (y := fn(x)) < target or y == target
+        elif side == "right":
+            return lambda x: fn(x) < target
         else:
             assert_never(side)
 
@@ -111,11 +111,24 @@ def bisect_seq(
     seq: Sequence[L],
     target: L,
     *,
-    low: int | None,
-    high: int | None,
+    low: int | None = None,
+    high: int | None = None,
     side: Side = "left",
     ordering: Ordering = "ascending",
 ) -> int:
+    """
+    Binary search on a `Sequence`. Returns an index where `target` should be inserted to maintain
+    the ordering.
+
+    :param seq: Sequence to search.
+    :param target: The value to search for.
+    :param low: Lower limit on the indices to search. If `None` will be set to `0`.
+    :param high: Upper limit on the indices to search. If `None` will be set to the length of the
+        sequence.
+    :param side: If "left", returns the lowest possible index to insert `target` to maintain
+        ordering. If `right` returns the highest possible index.
+    :param ordering: Whether the sequence is sorted "ascending" or "descending".
+    """
     if low is None:
         low = 0
     if high is None:
@@ -137,27 +150,60 @@ def bisect_int_fn(
     fn: Callable[[int], L],
     target: L,
     *,
-    low: int | None,
-    high: int | None,
+    low: int | None = None,
+    high: int | None = None,
     side: Side = "left",
     ordering: Ordering = "ascending",
 ) -> int:
-    return bisect_int_bool_fn(
-        make_pred(fn, target, side, ordering),
+    """
+    Binary search on a function that takes an integer argument.
+
+    :param fn: Function to search.
+    :param target: The value to search for.
+    :param low: If set defines the lowest possible input argument to search. If set, the function
+        *will* be called with this argument. If unset, an exponential search is performed for the
+        lower bound - this may loop forever if no input argument is small enough to find `target`.
+    :param high: If set defines the highest possible input argument to search. If set, the function
+        will *not* be called with this argument, though this value will be returned if no lower
+        argument value produces the `target` value. If unset, an exponential search is performed for
+        the lower bound - this may loop forever if no input argument is big enough to find `target`.
+    :param side: If "left", returns the lowest argument value that produces a value greater than or
+        equal to `target`. If "right" returns the lowest argument value that produces a value
+        strictly greater than `target`.
+    :param ordering: Whether the function outputs are "ascending" or "descending".
+    """
+    return bisect_int_pred(
+        _make_pred(fn, target, side, ordering),
         low=low,
         high=high,
         ordering="ascending",
     )
 
 
-def bisect_int_bool_fn(
+def bisect_int_pred(
     pred: Callable[[int], bool],
     *,
-    low: int | None,
-    high: int | None,
+    low: int | None = None,
+    high: int | None = None,
     ordering: Ordering = "ascending",
 ) -> int:
-    return bisect_num_bool_fn(
+    """
+    Binary search on a predicate that takes an integer argument.
+
+    Assume there exists some `i`, so that for all `j<i` `pred(j)` is `False` and for all `j>=i`
+    `pred(j)` is `True`. This function uses binary search to find this `i`.
+
+    :param pred: Predicate to search.
+    :param low: If set defines the lowest possible input argument to search. If set, the predicate
+        *will* be called with this argument. If unset, an exponential search is performed for the
+        lower bound - this may loop forever if no input argument is small enough to be valid.
+    :param high: If set defines the highest possible input argument to search. If set, the predicate
+        will *not* be called with this argument, though this value will be returned if no lower
+        argument value is valid. If unset, an exponential search is performed for
+        the lower bound - this may loop forever if no input argument is big enough to be valid.
+    :param ordering: If set to "descending", the predicate is inverted.
+    """
+    return _bisect_num_pred(
         pred,
         _int_suggest,
         low=low,
@@ -175,22 +221,55 @@ def bisect_float_fn(
     side: Side = "left",
     ordering: Ordering = "ascending",
 ) -> float:
-    return bisect_float_bool_fn(
-        make_pred(fn, target, side, ordering),
+    """
+    Binary search on a function that takes a floating-point argument.
+
+    :param fn: Function to search.
+    :param target: The value to search for.
+    :param low: If set defines the lowest possible input argument to search. If set, the function
+        *will* be called with this argument. If unset, an exponential search is performed for the
+        lower bound - this may loop forever if no input argument is small enough to find `target`.
+    :param high: If set defines the highest possible input argument to search. If set, the function
+        will *not* be called with this argument, though this value will be returned if no lower
+        argument value produces the `target` value. If unset, an exponential search is performed for
+        the lower bound - this may loop forever if no input argument is big enough to find `target`.
+    :param side: If "left", returns the lowest argument value that produces a value greater than or
+        equal to `target`. If "right" returns the lowest argument value that produces a value
+        strictly greater than `target`.
+    :param ordering: Whether the function outputs are "ascending" or "descending".
+    """
+    return bisect_float_pred(
+        _make_pred(fn, target, side, ordering),
         low=low,
         high=high,
         ordering="ascending",
     )
 
 
-def bisect_float_bool_fn(
+def bisect_float_pred(
     pred: Callable[[float], bool],
     *,
     low: float | None = None,
     high: float | None = None,
     ordering: Ordering = "ascending",
 ) -> float:
-    return bisect_num_bool_fn(
+    """
+    Binary search on a predicate that takes an floating-point argument.
+
+    Assume there exists some `i`, so that for all `j<i` `pred(j)` is `False` and for all `j>=i`
+    `pred(j)` is `True`. This function uses binary search to find this `i`.
+
+    :param pred: Predicate to search.
+    :param low: If set defines the lowest possible input argument to search. If set, the predicate
+        *will* be called with this argument. If unset, an exponential search is performed for the
+        lower bound - this may loop forever if no input argument is small enough to be valid.
+    :param high: If set defines the highest possible input argument to search. If set, the predicate
+        will *not* be called with this argument, though this value will be returned if no lower
+        argument value is valid. If unset, an exponential search is performed for
+        the lower bound - this may loop forever if no input argument is big enough to be valid.
+    :param ordering: If set to "descending", the predicate is inverted.
+    """
+    return _bisect_num_pred(
         pred,
         _float_suggest,
         low=low,
@@ -199,13 +278,13 @@ def bisect_float_bool_fn(
     )
 
 
-def bisect_num_bool_fn(
+def _bisect_num_pred(
     pred: Callable[[N], bool],
     suggest: Callable[[N | None, N | None], N],
     *,
     low: N | None,
     high: N | None,
-    ordering: Ordering = "ascending",
+    ordering: Ordering,
 ) -> N:
     if ordering == "descending":
         pred_ = pred
@@ -216,17 +295,17 @@ def bisect_num_bool_fn(
         if low == high:
             return low
 
-    if low is not None and not pred(low):
+    if low is not None and pred(low):
         return low
 
-    if high is not None and pred(prev_num(high)):
+    if high is not None and not pred(prev_num(high)):
         return high
 
     while True:
         mid = suggest(low, high)
         if mid == low:
             break
-        if pred(mid):
+        if not pred(mid):
             low = mid
         else:
             high = mid
