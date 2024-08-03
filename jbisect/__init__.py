@@ -59,11 +59,17 @@ def bisect_seq(
     seq: Sequence[L],
     target: L,
     *,
-    low: int,
-    high: int,
+    low: int | None,
+    high: int | None,
     side: Side = "left",
     ordering: Ordering = "ascending",
 ) -> int:
+    if low is None:
+        low = 0
+    if high is None:
+        high = len(seq)
+    assert 0 <= low <= high <= len(seq), (low, high, len(seq))
+    print("bisect_seq", seq, target, low, high, side, ordering)
     return bisect_int_fn(lambda i: seq[i], target, low=low, high=high, side=side, ordering=ordering)
 
 
@@ -71,8 +77,8 @@ def bisect_int_fn(
     fn: Callable[[int], L],
     target: L,
     *,
-    low: int,
-    high: int,
+    low: int | None,
+    high: int | None,
     side: Side = "left",
     ordering: Ordering = "ascending",
 ) -> int:
@@ -82,34 +88,49 @@ def bisect_int_fn(
     )
 
 
+def _int_mid(low: int | None, high: int | None) -> int:
+    if low is None:
+        if high is None:
+            return 0
+        return min(2 * high, -16)
+    if high is None:
+        return max(2 * low, 16)
+    return (low + high) // 2
+
+
 def bisect_int_bool_fn(
     pred: Callable[[int], bool],
     *,
-    low: int,
-    high: int,
+    low: int | None,
+    high: int | None,
     ordering: Ordering = "ascending",
 ) -> int:
-    assert low <= high, (low, high)
-    print(pred, low, high, ordering)
 
     if ordering == "descending":
         pred_ = pred
         pred = lambda i: not pred_(i)
 
-    if low == high:
-        print("No interval", low, high)
-        return low
-    if not pred(low):
-        print("No valid interval", low, pred(low))
-        return low
-    if pred(high - 1):
-        print("No invalid interval", high, pred(high - 1))
-        return high
+    print("bisect_int_bool_fn", pred, low, high, ordering)
+
+    if low is not None:
+        if high is not None:
+            assert low <= high, (low, high)
+            if low == high:
+                print("No interval", low, high)
+                return low
+
+        if not pred(low):
+            print("No valid interval", low, pred(low))
+            return low
+
+    if high is not None:
+        if pred(high - 1):
+            print("No invalid interval", high, pred(high - 1))
+            return high
 
     while True:
-        mid = (low + high) // 2
+        mid = _int_mid(low, high)
         if _DEBUG:
-            assert low <= mid < high
             print("low", low, "high", high, "mid", mid)
         if mid == low:
             break
@@ -118,6 +139,7 @@ def bisect_int_bool_fn(
         else:
             high = mid
 
+    assert high is not None
     return high
 
 
