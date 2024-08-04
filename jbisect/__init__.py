@@ -17,9 +17,6 @@ from typing import (
 __version__ = "0.1.0"
 
 
-_DEBUG = True
-
-
 class SupportsLess(Protocol):
     def __lt__(self, __other: Self) -> bool: ...
 
@@ -40,6 +37,49 @@ def prev_float(x: float) -> float:
 
 def prev_num(x: N) -> N:
     return prev_int(x) if isinstance(x, int) else prev_float(x)
+
+
+def _int_suggest(low: int | None, high: int | None) -> int:
+    if low is None:
+        if high is None:
+            return 0
+        return min(2 * high, -16)
+    if high is None:
+        return max(2 * low, 16)
+    return (low + high) // 2
+
+
+def _nonnegative_float_suggest(low: float, high: float) -> float:
+    assert 0.0 <= low < high, (low, high)
+
+    log_low = log2(low if low != 0.0 else float_info.min)
+    log_high = log2(high)
+    if log_high - log_low > 1:
+        log_mid = log_low + (log_high - log_low) / 2
+        return exp2(log_mid)
+
+    return low + (high - low) / 2
+
+
+def _float_suggest(low: float | None, high: float | None) -> float:
+    if low is None:
+        low = -float_info.max
+    if high is None:
+        high = float_info.max
+
+    if low < 0.0 < high:
+        return 0.0
+
+    mid = (
+        -_nonnegative_float_suggest(-high, -low)
+        if low < 0
+        else _nonnegative_float_suggest(low, high)
+    )
+
+    if mid == high:  # Deal with rounding up...
+        mid = prev_float(mid)
+
+    return mid
 
 
 def make_pred(
@@ -80,9 +120,17 @@ def bisect_seq(
         low = 0
     if high is None:
         high = len(seq)
+
     assert 0 <= low <= high <= len(seq), (low, high, len(seq))
-    print("bisect_seq", seq, target, low, high, side, ordering)
-    return bisect_int_fn(lambda i: seq[i], target, low=low, high=high, side=side, ordering=ordering)
+
+    return bisect_int_fn(
+        lambda i: seq[i],
+        target,
+        low=low,
+        high=high,
+        side=side,
+        ordering=ordering,
+    )
 
 
 def bisect_int_fn(
@@ -94,20 +142,12 @@ def bisect_int_fn(
     side: Side = "left",
     ordering: Ordering = "ascending",
 ) -> int:
-    print(fn, target, low, high, side, ordering)
     return bisect_int_bool_fn(
-        make_pred(fn, target, side, ordering), low=low, high=high, ordering="ascending"
+        make_pred(fn, target, side, ordering),
+        low=low,
+        high=high,
+        ordering="ascending",
     )
-
-
-def _int_mid(low: int | None, high: int | None) -> int:
-    if low is None:
-        if high is None:
-            return 0
-        return min(2 * high, -16)
-    if high is None:
-        return max(2 * low, 16)
-    return (low + high) // 2
 
 
 def bisect_int_bool_fn(
@@ -117,42 +157,13 @@ def bisect_int_bool_fn(
     high: int | None,
     ordering: Ordering = "ascending",
 ) -> int:
-
-    if ordering == "descending":
-        pred_ = pred
-        pred = lambda i: not pred_(i)
-
-    print("bisect_int_bool_fn", pred, low, high, ordering)
-
-    if low is not None:
-        if high is not None:
-            assert low <= high, (low, high)
-            if low == high:
-                print("No interval", low, high)
-                return low
-
-        if not pred(low):
-            print("No valid interval", low, pred(low))
-            return low
-
-    if high is not None:
-        if pred(prev_int(high)):
-            print("No invalid interval", high, pred(prev_int(high)))
-            return high
-
-    while True:
-        mid = _int_mid(low, high)
-        if _DEBUG:
-            print("low", low, "high", high, "mid", mid)
-        if mid == low:
-            break
-        if pred(mid):
-            low = mid
-        else:
-            high = mid
-
-    assert high is not None
-    return high
+    return bisect_num_bool_fn(
+        pred,
+        _int_suggest,
+        low=low,
+        high=high,
+        ordering=ordering,
+    )
 
 
 def bisect_float_fn(
@@ -165,27 +176,11 @@ def bisect_float_fn(
     ordering: Ordering = "ascending",
 ) -> float:
     return bisect_float_bool_fn(
-        make_pred(fn, target, side, ordering), low=low, high=high, ordering="ascending"
+        make_pred(fn, target, side, ordering),
+        low=low,
+        high=high,
+        ordering="ascending",
     )
-
-
-def _float_mid(low: float, high: float) -> float:
-    if low < 0.0 < high:
-        return 0.0
-    negative = False
-    if low < 0.0:
-        assert low < high <= 0.0, (low, high)
-        negative = True
-        low, high = -high, -low
-    assert 0.0 <= low < high, (low, high)
-    log_low = log2(low if low != 0.0 else float_info.min)
-    log_high = log2(high)
-    if log_high - log_low > 1:
-        log_mid = log_low + (log_high - log_low) / 2
-        mid = exp2(log_mid)
-    else:
-        mid = low + (high - low) / 2
-    return -mid if negative else mid
 
 
 def bisect_float_bool_fn(
@@ -195,34 +190,40 @@ def bisect_float_bool_fn(
     high: float | None = None,
     ordering: Ordering = "ascending",
 ) -> float:
-    if low is None:
-        low = -float_info.max
-    if high is None:
-        high = float_info.max
-    assert low <= high, (low, high)
+    return bisect_num_bool_fn(
+        pred,
+        _float_suggest,
+        low=low,
+        high=high,
+        ordering=ordering,
+    )
 
-    print("bisect_float_bool_fn", low, high, ordering)
 
+def bisect_num_bool_fn(
+    pred: Callable[[N], bool],
+    suggest: Callable[[N | None, N | None], N],
+    *,
+    low: N | None,
+    high: N | None,
+    ordering: Ordering = "ascending",
+) -> N:
     if ordering == "descending":
         pred_ = pred
         pred = lambda i: not pred_(i)
 
-    if low == high:
-        print("No interval")
+    if low is not None and high is not None:
+        assert low <= high, (low, high)
+        if low == high:
+            return low
+
+    if low is not None and not pred(low):
         return low
-    if not pred(low):
-        print("No valid interval")
-        return low
-    if pred(prev_float(high)):
-        print("No invalid interval")
+
+    if high is not None and pred(prev_num(high)):
         return high
 
     while True:
-        mid = _float_mid(low, high)
-        if mid == high:  # Deal with rounding up...
-            mid = prev_float(high)
-        if _DEBUG:
-            print("low", low, "high", high, "mid", mid)
+        mid = suggest(low, high)
         if mid == low:
             break
         if pred(mid):
@@ -230,4 +231,5 @@ def bisect_float_bool_fn(
         else:
             high = mid
 
+    assert high is not None
     return high

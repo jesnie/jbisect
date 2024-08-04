@@ -1,6 +1,5 @@
 * Interpolation
 * raise on "not found"
-* generic re-used bisect
 * add back some more manual tests
 * inf results
 * numpy
