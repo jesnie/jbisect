@@ -1,8 +1,5 @@
 * Interpolation
-* exponential search
 * raise on "not found"
-* generic re-used bisect
-* abstract nextafter
 * add back some more manual tests
 * inf results
 * numpy

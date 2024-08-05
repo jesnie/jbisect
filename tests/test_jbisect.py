@@ -15,6 +15,7 @@ from jbisect import (
     bisect_int_bool_fn,
     bisect_int_fn,
     bisect_seq,
+    prev_float,
 )
 
 ROOT = Path(__file__).parent
@@ -29,9 +30,6 @@ N = TypeVar("N", int, float)
 
 
 Json: TypeAlias = Any
-
-
-SIDES: tuple[Side, ...] = ("left", "right")
 
 
 class CallRecorder(Generic[T, R]):
@@ -85,10 +83,6 @@ def neg(_: N) -> CallRecorder[N, N]:
     return CallRecorder(lambda y: -y)
 
 
-def float_prev(x: float) -> float:
-    return nextafter(x, -inf)
-
-
 def clamp(low: N | None, high: N | None, value: N, side: Side) -> N:
     if (low is not None) and value < low:
         return low
@@ -97,6 +91,18 @@ def clamp(low: N | None, high: N | None, value: N, side: Side) -> N:
     if side == "right":
         value = (value + 1) if isinstance(value, int) else nextafter(value, inf)
     return value
+
+
+def iter_limits(low: N, high: N, name: str) -> Iterator[tuple[N | None, N | None, str]]:
+    yield low, high, name
+    yield None, high, "nolow_" + name
+    yield low, None, "nohigh_" + name
+    yield None, None, "nolow_nohigh_" + name
+
+
+def iter_sides(left: N, right: N, name: str) -> Iterator[tuple[Side, N, str]]:
+    yield "left", left, "left_" + name
+    yield "right", right, "right_" + name
 
 
 class Case(Generic[P, R]):
@@ -155,134 +161,117 @@ def make_seq_cases(
     low: int,
     high: int,
     ordering: Ordering,
-    expected_left: int,
-    expected_right: int,
+    left: int,
+    right: int,
     max_n_calls: int,
 ) -> CaseIter:
-    yield Case(
-        "left_" + name,
-        bisect_seq,
-        seq,
-        target,
-        low=low,
-        high=high,
-        side="left",
-        ordering=ordering,
-        expected_value=expected_left,
-        max_n_calls=max_n_calls,
-    )
-    yield Case(
-        "right_" + name,
-        bisect_seq,
-        seq,
-        target,
-        low=low,
-        high=high,
-        side="right",
-        ordering=ordering,
-        expected_value=expected_right,
-        max_n_calls=max_n_calls,
-    )
+    assert 0 <= low <= high <= len(seq)
+    for low_, high_, name_ in iter_limits(low, high, name):
+        for side, value, name__ in iter_sides(left, right, name_):
+            yield Case(
+                name__,
+                bisect_seq,
+                seq,
+                target,
+                low=low_,
+                high=high_,
+                side=side,
+                ordering=ordering,
+                expected_value=value,
+                max_n_calls=max_n_calls,
+            )
 
 
 def make_float_cases(
     name: str, low: float, high: float, value: float, max_n_calls: int
 ) -> CaseIter:
-    for low_none in [True, False]:
-        for high_none in [True, False]:
-            low_ = None if low_none else low
-            high_ = None if high_none else high
-            name_ = f"{low_none}_{high_none}_{name}"
+    for low_, high_, name_ in iter_limits(low, high, name):
+        yield Case(
+            f"le_{name_}",
+            bisect_float_bool_fn,
+            le(value),
+            low=low_,
+            high=high_,
+            ordering="ascending",
+            expected_value=clamp(low_, high_, value, "right"),
+            max_n_calls=max_n_calls,
+        )
+        yield Case(
+            f"lt_{name_}",
+            bisect_float_bool_fn,
+            lt(value),
+            low=low_,
+            high=high_,
+            ordering="ascending",
+            expected_value=clamp(low_, high_, prev_float(value), "right"),
+            max_n_calls=max_n_calls,
+        )
+        yield Case(
+            f"ge_{name_}",
+            bisect_float_bool_fn,
+            ge(value),
+            low=low_,
+            high=high_,
+            ordering="descending",
+            expected_value=clamp(low_, high_, prev_float(value), "right"),
+            max_n_calls=max_n_calls,
+        )
+        for side, value_, name__ in iter_sides(value, value, name_):
             yield Case(
-                f"le_{name_}",
-                bisect_float_bool_fn,
-                le(value),
+                f"slf_{name__}",
+                bisect_float_fn,
+                slf(value_),
+                value_,
                 low=low_,
                 high=high_,
+                side=side,
                 ordering="ascending",
-                expected_value=clamp(low_, high_, value, "right"),
+                expected_value=clamp(low_, high_, value_, side),
                 max_n_calls=max_n_calls,
             )
             yield Case(
-                f"lt_{name_}",
-                bisect_float_bool_fn,
-                lt(value),
+                f"neg_{name__}",
+                bisect_float_fn,
+                neg(value_),
+                -value_,
                 low=low_,
                 high=high_,
-                ordering="ascending",
-                expected_value=clamp(low_, high_, float_prev(value), "right"),
-                max_n_calls=max_n_calls,
-            )
-            yield Case(
-                f"ge_{name_}",
-                bisect_float_bool_fn,
-                ge(value),
-                low=low_,
-                high=high_,
+                side=side,
                 ordering="descending",
-                expected_value=clamp(low_, high_, float_prev(value), "right"),
+                expected_value=clamp(low_, high_, value_, side),
                 max_n_calls=max_n_calls,
             )
-            for side in SIDES:
-                yield Case(
-                    f"slf_{side}_{name_}",
-                    bisect_float_fn,
-                    slf(value),
-                    value,
-                    low=low_,
-                    high=high_,
-                    side=side,
-                    ordering="ascending",
-                    expected_value=clamp(low_, high_, value, side),
-                    max_n_calls=max_n_calls,
-                )
-                yield Case(
-                    f"neg_{side}_{name_}",
-                    bisect_float_fn,
-                    neg(value),
-                    -value,
-                    low=low_,
-                    high=high_,
-                    side=side,
-                    ordering="descending",
-                    expected_value=clamp(low_, high_, value, side),
-                    max_n_calls=max_n_calls,
-                )
 
 
 def make_float_itv_cases(
     name: str, low: float, high: float, left: float, right: float, max_n_calls: int
 ) -> CaseIter:
-    for low_none in [True, False]:
-        for high_none in [True, False]:
-            for side, value in zip(SIDES, [left, right]):
-                low_ = None if low_none else low
-                high_ = None if high_none else high
-                name_ = f"{side}_{low_none}_{high_none}_{name}"
-                yield Case(
-                    f"itv_{name_}",
-                    bisect_float_fn,
-                    slf(value),
-                    value,
-                    low=low_,
-                    high=high_,
-                    side=side,
-                    ordering="ascending",
-                    expected_value=clamp(low_, high_, value, side),
-                    max_n_calls=max_n_calls,
-                )
-                yield Case(
-                    f"neg_itv_{name_}",
-                    bisect_float_fn,
-                    neg(value),
-                    -value,
-                    low=low_,
-                    high=high_,
-                    side=side,
-                    ordering="descending",
-                    expected_value=clamp(low_, high_, value, side),
-                    max_n_calls=max_n_calls,
-                )
+    for low_, high_, name_ in iter_limits(low, high, name):
+        for side, value, name__ in iter_sides(left, right, name_):
+            yield Case(
+                f"itv_{name__}",
+                bisect_float_fn,
+                slf(value),
+                value,
+                low=low_,
+                high=high_,
+                side=side,
+                ordering="ascending",
+                expected_value=clamp(low_, high_, value, side),
+                max_n_calls=max_n_calls,
+            )
+            yield Case(
+                f"neg_itv_{name__}",
+                bisect_float_fn,
+                neg(value),
+                -value,
+                low=low_,
+                high=high_,
+                side=side,
+                ordering="descending",
+                expected_value=clamp(low_, high_, value, side),
+                max_n_calls=max_n_calls,
+            )
 
 
 def make_int_cases(
@@ -293,62 +282,65 @@ def make_int_cases(
     int_max_n_calls: int,
     float_max_n_calls: int,
 ) -> CaseIter:
-    yield Case(
-        "le_" + name,
-        bisect_int_bool_fn,
-        le(value),
-        low=low,
-        high=high,
-        ordering="ascending",
-        expected_value=clamp(low, high, value, "right"),
-        max_n_calls=int_max_n_calls,
-    )
-    yield Case(
-        "ge_" + name,
-        bisect_int_bool_fn,
-        ge(value),
-        low=low,
-        high=high,
-        ordering="descending",
-        expected_value=clamp(low, high, value - 1, "right"),
-        max_n_calls=int_max_n_calls,
-    )
-    for side in SIDES:
+    for low_, high_, name_ in iter_limits(low, high, name):
         yield Case(
-            "slf_" + side + "__" + name,
-            bisect_int_fn,
-            slf(value),
-            value,
-            low=low,
-            high=high,
-            side=side,
+            "le_" + name_,
+            bisect_int_bool_fn,
+            le(value),
+            low=low_,
+            high=high_,
             ordering="ascending",
-            expected_value=clamp(low, high, value, side),
+            expected_value=clamp(low_, high_, value, "right"),
             max_n_calls=int_max_n_calls,
         )
         yield Case(
-            "neg_" + side + "__" + name,
-            bisect_int_fn,
-            neg(value),
-            -value,
-            low=low,
-            high=high,
-            side=side,
+            "ge_" + name_,
+            bisect_int_bool_fn,
+            ge(value),
+            low=low_,
+            high=high_,
             ordering="descending",
-            expected_value=clamp(low, high, value, side),
+            expected_value=clamp(low_, high_, value - 1, "right"),
             max_n_calls=int_max_n_calls,
         )
-    r = range(low, high)
+        for side, value_, name__ in iter_sides(value, value, name_):
+            yield Case(
+                "slf_" + name__,
+                bisect_int_fn,
+                slf(value_),
+                value_,
+                low=low_,
+                high=high_,
+                side=side,
+                ordering="ascending",
+                expected_value=clamp(low_, high_, value_, side),
+                max_n_calls=int_max_n_calls,
+            )
+            yield Case(
+                "neg_" + name__,
+                bisect_int_fn,
+                neg(value_),
+                -value_,
+                low=low_,
+                high=high_,
+                side=side,
+                ordering="descending",
+                expected_value=clamp(low_, high_, value_, side),
+                max_n_calls=int_max_n_calls,
+            )
     try:
+        r = range(low, high)
+        low_ = 0
+        high_ = len(r)
         yield from make_seq_cases(
             name,
             r,
             value,
-            low=0,
-            high=len(r),
+            low=low_,
+            high=high_,
             ordering="ascending",
-            expected_left=clamp(0, len(r), value - low, "left"),
-            expected_right=clamp(0, len(r), value - low, "right"),
+            left=clamp(low_, high_, value - low, "left"),
+            right=clamp(low_, high_, value - low, "right"),
             max_n_calls=int_max_n_calls,
         )
     except OverflowError:
@@ -365,31 +357,32 @@ def make_int_itv_cases(
     int_max_n_calls: int,
     float_max_n_calls: int,
 ) -> CaseIter:
-    for side, value in zip(SIDES, [left, right]):
-        yield Case(
-            "itv_" + side + "__" + name,
-            bisect_int_fn,
-            slf(value),
-            value,
-            low=low,
-            high=high,
-            side=side,
-            ordering="ascending",
-            expected_value=clamp(low, high, value, side),
-            max_n_calls=int_max_n_calls,
-        )
-        yield Case(
-            "neg_itv_" + side + "__" + name,
-            bisect_int_fn,
-            neg(value),
-            -value,
-            low=low,
-            high=high,
-            side=side,
-            ordering="descending",
-            expected_value=clamp(low, high, value, side),
-            max_n_calls=int_max_n_calls,
-        )
+    for low_, high_, name_ in iter_limits(low, high, name):
+        for side, value, name__ in iter_sides(left, right, name_):
+            yield Case(
+                "itv_" + name__,
+                bisect_int_fn,
+                slf(value),
+                value,
+                low=low_,
+                high=high_,
+                side=side,
+                ordering="ascending",
+                expected_value=clamp(low_, high_, value, side),
+                max_n_calls=int_max_n_calls,
+            )
+            yield Case(
+                "neg_itv_" + name__,
+                bisect_int_fn,
+                neg(value),
+                -value,
+                low=low_,
+                high=high_,
+                side=side,
+                ordering="descending",
+                expected_value=clamp(low_, high_, value, side),
+                max_n_calls=int_max_n_calls,
+            )
     yield from make_float_itv_cases(
         name, float(low), float(high), float(left), float(right), float_max_n_calls
     )
