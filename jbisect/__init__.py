@@ -1,7 +1,7 @@
 # pylint: disable=unnecessary-lambda-assignment
 
 from collections.abc import Sequence
-from math import exp2, inf, log2, nextafter, sqrt
+from math import exp2, inf, log2, nextafter
 from sys import float_info
 from typing import (
     Any,
@@ -105,6 +105,8 @@ def _make_pred(
             return lambda x: fn(x) < target
         else:
             assert_never(side)
+    else:
+        assert_never(ordering)
 
 
 def bisect_seq(
@@ -117,8 +119,8 @@ def bisect_seq(
     ordering: Ordering = "ascending",
 ) -> int:
     """
-    Binary search on a `Sequence`. Returns an index where `target` should be inserted to maintain
-    the ordering.
+    Binary search on a sorted `Sequence`. Returns an index where `target` should be inserted to
+    maintain the ordering.
 
     :param seq: Sequence to search.
     :param target: The value to search for.
@@ -156,7 +158,7 @@ def bisect_int_fn(
     ordering: Ordering = "ascending",
 ) -> int:
     """
-    Binary search on a function that takes an integer argument.
+    Binary search on a monotonic function that takes an integer argument.
 
     :param fn: Function to search.
     :param target: The value to search for.
@@ -176,7 +178,6 @@ def bisect_int_fn(
         _make_pred(fn, target, side, ordering),
         low=low,
         high=high,
-        ordering="ascending",
     )
 
 
@@ -185,7 +186,6 @@ def bisect_int_pred(
     *,
     low: int | None = None,
     high: int | None = None,
-    ordering: Ordering = "ascending",
 ) -> int:
     """
     Binary search on a predicate that takes an integer argument.
@@ -201,14 +201,12 @@ def bisect_int_pred(
         will *not* be called with this argument, though this value will be returned if no lower
         argument value is valid. If unset, an exponential search is performed for
         the lower bound - this may loop forever if no input argument is big enough to be valid.
-    :param ordering: If set to "descending", the predicate is inverted.
     """
     return _bisect_num_pred(
         pred,
         _int_suggest,
         low=low,
         high=high,
-        ordering=ordering,
     )
 
 
@@ -222,7 +220,7 @@ def bisect_float_fn(
     ordering: Ordering = "ascending",
 ) -> float:
     """
-    Binary search on a function that takes a floating-point argument.
+    Binary search on a monotonic function that takes a floating-point argument.
 
     :param fn: Function to search.
     :param target: The value to search for.
@@ -242,7 +240,6 @@ def bisect_float_fn(
         _make_pred(fn, target, side, ordering),
         low=low,
         high=high,
-        ordering="ascending",
     )
 
 
@@ -251,7 +248,6 @@ def bisect_float_pred(
     *,
     low: float | None = None,
     high: float | None = None,
-    ordering: Ordering = "ascending",
 ) -> float:
     """
     Binary search on a predicate that takes an floating-point argument.
@@ -267,14 +263,12 @@ def bisect_float_pred(
         will *not* be called with this argument, though this value will be returned if no lower
         argument value is valid. If unset, an exponential search is performed for
         the lower bound - this may loop forever if no input argument is big enough to be valid.
-    :param ordering: If set to "descending", the predicate is inverted.
     """
     return _bisect_num_pred(
         pred,
         _float_suggest,
         low=low,
         high=high,
-        ordering=ordering,
     )
 
 
@@ -284,12 +278,7 @@ def _bisect_num_pred(
     *,
     low: N | None,
     high: N | None,
-    ordering: Ordering,
 ) -> N:
-    if ordering == "descending":
-        pred_ = pred
-        pred = lambda i: not pred_(i)
-
     if low is not None and high is not None:
         assert low <= high, (low, high)
         if low == high:

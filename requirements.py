@@ -44,19 +44,33 @@ def main() -> None:
         comp_req = cr.CompReq(python_specifier=prev_python_specifier)
         comp_req = set_python_version(comp_req, pyproject)
 
+        default_range = cr.version(
+            ">=",
+            cr.floor_ver(
+                cr.REL_MINOR,
+                cr.minimum_ver(
+                    cr.max_ver(cr.min_age(years=1)),
+                    cr.min_ver(cr.count(cr.MINOR, 3)),
+                ),
+            ),
+        ) & cr.version("<", cr.ceil_ver(cr.REL_MAJOR, cr.max_ver()))
         dev_range = cr.version(">=", cr.floor_ver(cr.REL_MINOR, cr.max_ver())) & cr.version(
             "<", cr.ceil_ver(cr.REL_MINOR, cr.max_ver())
         )
 
+        extra_optionals = ["check_shapes", "numpy"]
+
         pyproject.set_requirements(
             comp_req,
             [
+                *[cr.dist(o) & cr.optional() & default_range for o in extra_optionals],
                 cr.dist("python") & cr.python_specifier(),
             ],
         )
         pyproject.set_requirements(
             comp_req,
             [
+                *[cr.dist(o) & default_range for o in extra_optionals],
                 cr.dist("black") & dev_range,
                 cr.dist("compreq") & dev_range,
                 cr.dist("isort") & dev_range,
