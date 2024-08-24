@@ -18,18 +18,23 @@ classifiers = [
 ]
 
 [tool.poetry.dependencies]
+numpy = {version = "<3,>=1.25", optional = true}
 python = "<4,>=3.12"
 
 
 [tool.poetry.group.dev.dependencies]
-black = "<24.5,>=24.4"
-compreq = "<0.3.2,>=0.3.1"
-isort = "<5.14,>=5.13"
-mypy = "<1.12,>=1.11"
-pylint = "<3.3,>=3.2"
-pytest = "<8.3,>=8.2"
-taskipy = "<1.14,>=1.13"
-tomlkit = "<0.13.1,>=0.13.0"
+black = "<25,>=24.8"
+compreq = "<0.4,>=0.3.1"
+isort = "<6,>=5.13"
+mypy = "<2,>=1.11"
+numpy = "<3,>=1.25"
+pylint = "<4,>=3.2"
+pytest = "<9,>=8.3"
+taskipy = "<2,>=1.13"
+tomlkit = "<0.14,>=0.13.0"
+
+[tool.poetry.extras]
+numpy = ["numpy"]
 
 [build-system]
 requires = ["poetry-core"]

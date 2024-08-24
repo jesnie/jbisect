@@ -1,7 +1,8 @@
+* Rename bisect->search
+* align pure-python and NumPy implementations.
 * Interpolation
 * raise on "not found"
 * inf results
-* numpy
 * torch
 * jax
 * tensorflow
