@@ -12,13 +12,13 @@ import pytest
 from jbisect import (
     Ordering,
     Side,
-    bisect_float_fn,
-    bisect_float_pred,
-    bisect_int_fn,
-    bisect_int_pred,
-    bisect_seq,
+    search_float_fn,
+    search_float_pred,
+    search_int_fn,
+    search_int_pred,
+    search_seq,
 )
-from jbisect.numpy import bisect_numpy_array, bisect_numpy_fn, bisect_numpy_pred
+from jbisect.numpy import search_numpy_array, search_numpy_fn, search_numpy_pred
 
 ROOT = Path(__file__).parent
 DATA_DIR = ROOT / "data"
@@ -191,7 +191,7 @@ def make_seq_cases(
         for side, value, name__ in iter_sides(left, right, name_):
             yield Case(
                 name__,
-                bisect_seq,
+                search_seq,
                 seq,
                 target,
                 low=low_,
@@ -210,7 +210,7 @@ def make_seq_cases(
                     target_ = target
                 yield Case(
                     name__,
-                    bisect_numpy_array,
+                    search_numpy_array,
                     seq_,
                     target_,
                     low=low_,
@@ -230,7 +230,7 @@ def make_float_cases(
     for low_, high_, name_ in iter_limits(low, high, name):
         yield Case(
             f"gt_{name_}",
-            bisect_float_pred,
+            search_float_pred,
             gt(value),
             low=low_,
             high=high_,
@@ -240,7 +240,7 @@ def make_float_cases(
         for side, value_, name__ in iter_sides(value, value, name_):
             yield Case(
                 f"slf_{name__}",
-                bisect_float_fn,
+                search_float_fn,
                 slf(value_),
                 value_,
                 low=low_,
@@ -252,7 +252,7 @@ def make_float_cases(
             )
             yield Case(
                 f"neg_{name__}",
-                bisect_float_fn,
+                search_float_fn,
                 neg(value_),
                 -value_,
                 low=low_,
@@ -266,7 +266,7 @@ def make_float_cases(
             raise_on_overflow(low_, high_, value, dtype=np.float64)
             yield Case(
                 f"float64_gt_{name_}",
-                bisect_numpy_pred,
+                search_numpy_pred,
                 gt(value),
                 low=low_,
                 high=high_,
@@ -278,7 +278,7 @@ def make_float_cases(
             for side, value_, name__ in iter_sides(value, value, name_):
                 yield Case(
                     f"float64_slf_{name__}",
-                    bisect_numpy_fn,
+                    search_numpy_fn,
                     slf(value_),
                     value_,
                     low=low_,
@@ -292,7 +292,7 @@ def make_float_cases(
                 )
                 yield Case(
                     f"float64_neg_{name__}",
-                    bisect_numpy_fn,
+                    search_numpy_fn,
                     neg(value_),
                     -value_,
                     low=low_,
@@ -315,7 +315,7 @@ def make_float_itv_cases(
         for side, value, name__ in iter_sides(left, right, name_):
             yield Case(
                 f"itv_{name__}",
-                bisect_float_fn,
+                search_float_fn,
                 slf(value),
                 value,
                 low=low_,
@@ -327,7 +327,7 @@ def make_float_itv_cases(
             )
             yield Case(
                 f"neg_itv_{name__}",
-                bisect_float_fn,
+                search_float_fn,
                 neg(value),
                 -value,
                 low=low_,
@@ -341,7 +341,7 @@ def make_float_itv_cases(
                 raise_on_overflow(low_, high_, value, dtype=np.float64)
                 yield Case(
                     f"float64_itv_{name__}",
-                    bisect_numpy_fn,
+                    search_numpy_fn,
                     slf(value),
                     value,
                     low=low_,
@@ -355,7 +355,7 @@ def make_float_itv_cases(
                 )
                 yield Case(
                     f"float64_neg_itv_{name__}",
-                    bisect_numpy_fn,
+                    search_numpy_fn,
                     neg(value),
                     -value,
                     low=low_,
@@ -382,7 +382,7 @@ def make_int_cases(
     for low_, high_, name_ in iter_limits(low, high, name):
         yield Case(
             "gt_" + name_,
-            bisect_int_pred,
+            search_int_pred,
             gt(value),
             low=low_,
             high=high_,
@@ -392,7 +392,7 @@ def make_int_cases(
         for side, value_, name__ in iter_sides(value, value, name_):
             yield Case(
                 "slf_" + name__,
-                bisect_int_fn,
+                search_int_fn,
                 slf(value_),
                 value_,
                 low=low_,
@@ -404,7 +404,7 @@ def make_int_cases(
             )
             yield Case(
                 "neg_" + name__,
-                bisect_int_fn,
+                search_int_fn,
                 neg(value_),
                 -value_,
                 low=low_,
@@ -418,7 +418,7 @@ def make_int_cases(
             raise_on_overflow(low_, high_, value, dtype=np.int64)
             yield Case(
                 "int64_gt_" + name_,
-                bisect_numpy_pred,
+                search_numpy_pred,
                 gt(value),
                 low=low_,
                 high=high_,
@@ -430,7 +430,7 @@ def make_int_cases(
             for side, value_, name__ in iter_sides(value, value, name_):
                 yield Case(
                     "int64_slf_" + name__,
-                    bisect_numpy_fn,
+                    search_numpy_fn,
                     slf(value_),
                     value_,
                     low=low_,
@@ -444,7 +444,7 @@ def make_int_cases(
                 )
                 yield Case(
                     "int64_neg_" + name__,
-                    bisect_numpy_fn,
+                    search_numpy_fn,
                     neg(value_),
                     -value_,
                     low=low_,
@@ -493,7 +493,7 @@ def make_int_itv_cases(
         for side, value, name__ in iter_sides(left, right, name_):
             yield Case(
                 "itv_" + name__,
-                bisect_int_fn,
+                search_int_fn,
                 slf(value),
                 value,
                 low=low_,
@@ -505,7 +505,7 @@ def make_int_itv_cases(
             )
             yield Case(
                 "neg_itv_" + name__,
-                bisect_int_fn,
+                search_int_fn,
                 neg(value),
                 -value,
                 low=low_,
@@ -520,7 +520,7 @@ def make_int_itv_cases(
                 raise_on_overflow(low_, high_, value, dtype=np.int64)
                 yield Case(
                     "int64_itv_" + name__,
-                    bisect_numpy_fn,
+                    search_numpy_fn,
                     slf(value),
                     value,
                     low=low_,
@@ -534,7 +534,7 @@ def make_int_itv_cases(
                 )
                 yield Case(
                     "int64_neg_itv_" + name__,
-                    bisect_numpy_fn,
+                    search_numpy_fn,
                     neg(value),
                     -value,
                     low=low_,
@@ -653,11 +653,11 @@ def make_cases() -> tuple[AnyCase, ...]:
 CASES = make_cases()
 ONLY: set[Callable[..., Any]] | None
 ONLY = None
-# ONLY = {bisect_int_pred}
-# ONLY = {bisect_int_pred, bisect_int_fn, bisect_seq}
-# ONLY = {bisect_float_pred}
-# ONLY = {bisect_float_pred, bisect_float_fn}
-# ONLY = {bisect_numpy_pred}
+# ONLY = {search_int_pred}
+# ONLY = {search_int_pred, search_int_fn, search_seq}
+# ONLY = {search_float_pred}
+# ONLY = {search_float_pred, search_float_fn}
+# ONLY = {search_numpy_pred}
 
 
 def filter_cases() -> Sequence[AnyCase]:

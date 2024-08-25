@@ -240,7 +240,7 @@ def _suggest(
     )
 
 
-def bisect_numpy_array(
+def search_numpy_array(
     arr: npt.ArrayLike,
     target: npt.ArrayLike,
     *,
@@ -296,7 +296,7 @@ def bisect_numpy_array(
         result = arr[ranges[:axis] + (i,) + ranges[axis:]]
         return result  # type: ignore[no-any-return]
 
-    return bisect_numpy_fn(
+    return search_numpy_fn(
         fn,
         target,
         low=low,
@@ -308,7 +308,7 @@ def bisect_numpy_array(
     )
 
 
-def bisect_numpy_fn(
+def search_numpy_fn(
     fn: Callable[[np.ndarray[S, np.dtype[ND]]], np.ndarray[S, np.dtype[GD]]],
     target: npt.ArrayLike,
     *,
@@ -373,7 +373,7 @@ def bisect_numpy_fn(
     else:
         assert_never(ordering)
 
-    return bisect_numpy_pred(
+    return search_numpy_pred(
         pred,
         low=low,
         high=high,
@@ -382,7 +382,7 @@ def bisect_numpy_fn(
     )
 
 
-def bisect_numpy_pred(
+def search_numpy_pred(
     pred: Callable[[np.ndarray[S, np.dtype[ND]]], np.ndarray[S, np.dtype[np.bool]]],
     *,
     low: npt.ArrayLike | None = None,

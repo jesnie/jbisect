@@ -15,60 +15,60 @@ pip install jbisect
 
 ## Basic searching
 
-`jbisect` provides the function `bisect_seq` for searching sequences:
+`jbisect` provides the function `search_seq` for searching sequences:
 
 ```python
-from jbisect import bisect_seq
+from jbisect import search_seq
 
-print(bisect_seq("011222355", "2"))
+print(search_seq("011222355", "2"))
 ```
 
 By default the entire sequence is searched, but you can use the parameters `low` and `high` to limit
 the search range:
 
 ```python
-print(bisect_seq("011222355", "2", low=1, high=5))
+print(search_seq("011222355", "2", low=1, high=5))
 ```
 
 You can use the `side` parameters to configure whether to return the first match, or just past the
 last match:
 
 ```python
-print(bisect_seq("011222355", "2", side="right"))
+print(search_seq("011222355", "2", side="right"))
 ```
 
 If you have a sequence that is descending, instead of ascending, you need to set the `ordering`
 parameter:
 
 ```python
-print(bisect_seq("553222110", "2", ordering="descending"))
+print(search_seq("553222110", "2", ordering="descending"))
 ```
 
 ## Searching functions:
 
-The functions `bisect_int_fn` and `bisect_float_fn` can be used to search a function instead of a
+The functions `search_int_fn` and `search_float_fn` can be used to search a function instead of a
 sequence. These functions take the same `low`, `high`, `side` and `ordering` arguments as
-`bisect_seq`.
+`search_seq`.
 
 ```python
-from jbisect import bisect_int_fn, bisect_float_fn
+from jbisect import search_int_fn, search_float_fn
 
-print(bisect_int_fn(lambda i: i * i, 16))
-print(bisect_float_fn(lambda i: i * i, 2.0))
+print(search_int_fn(lambda i: i * i, 16))
+print(search_float_fn(lambda i: i * i, 2.0))
 ```
 
 ## Searching predicates:
 
-Finally the functions `bisect_int_pred` and `bisect_float_pred` can be used to find the first value
+Finally the functions `search_int_pred` and `search_float_pred` can be used to find the first value
 accepted by a predicate. `pred` must be a function that returns a `bool`, and for which there exists
 some `x` so that for all `y<x` `pred(y)` is `False`; and for all `y>=x` `pred(y)` is
-`True`. `bisect_*_pred` will then find `x`.
+`True`. `search_*_pred` will then find `x`.
 
 ```python
-from jbisect import bisect_int_pred, bisect_float_pred
+from jbisect import search_int_pred, search_float_pred
 
-print(bisect_int_pred(lambda i: i * i >= 16))
-print(bisect_float_pred(lambda i: i * i >= 2.0))
+print(search_int_pred(lambda i: i * i >= 16))
+print(search_float_pred(lambda i: i * i >= 2.0))
 ```
 
 ## NumPy support:
@@ -78,26 +78,26 @@ Again, this obviously competes with the NumPy function
 [`searchsorted`](https://numpy.org/doc/stable/reference/generated/numpy.searchsorted.html).
 However, `searchsorted` is limited in that it only searches existing arrays, and not functions.
 
-`jbisect.numpy` provides three functions `bisect_numpy_array`, `bisect_numpy_fn` and
-`bisect_numpy_pred`, mirroring the pure-python functions above. In the case of NumPy, we do not need
+`jbisect.numpy` provides three functions `search_numpy_array`, `search_numpy_fn` and
+`search_numpy_pred`, mirroring the pure-python functions above. In the case of NumPy, we do not need
 to distinguish between `int` and `float` up-front, as this is determined by the `dtype`.
 
-`bisect_numpy_array` takes the new argument `axis` that determines which axis of the input array to
+`search_numpy_array` takes the new argument `axis` that determines which axis of the input array to
 search.
 
-`bisect_numpy_fn` and `bisect_numpy_pred` takes the new arguments `dtype` and `shape` which
+`search_numpy_fn` and `search_numpy_pred` takes the new arguments `dtype` and `shape` which
 determines the dtype and shape of the input to the function/predicate, and the return type of the
 function.
 
 ```python
 import numpy as np
 
-from jbisect.numpy import bisect_numpy_array, bisect_numpy_fn, bisect_numpy_pred
+from jbisect.numpy import search_numpy_array, search_numpy_fn, search_numpy_pred
 
-print(bisect_numpy_array([0, 1, 1, 2, 2, 2, 3, 5, 5], 2))
+print(search_numpy_array([0, 1, 1, 2, 2, 2, 3, 5, 5], 2))
 
 print(
-    bisect_numpy_array(
+    search_numpy_array(
         [
             [
                 [111, 112, 113, 114],
@@ -115,7 +115,7 @@ print(
     )
 )
 
-print(bisect_numpy_fn(lambda i: i * i, 16, low=0, high=1000, shape=(), dtype=np.int64))
+print(search_numpy_fn(lambda i: i * i, 16, low=0, high=1000, shape=(), dtype=np.int64))
 
-print(bisect_numpy_pred(lambda i: i >= 4, shape=[], dtype=np.int64))
+print(search_numpy_pred(lambda i: i >= 4, shape=[], dtype=np.int64))
 ```

@@ -109,7 +109,7 @@ def _make_pred(
         assert_never(ordering)
 
 
-def bisect_seq(
+def search_seq(
     seq: Sequence[L],
     target: L,
     *,
@@ -138,7 +138,7 @@ def bisect_seq(
 
     assert 0 <= low <= high <= len(seq), (low, high, len(seq))
 
-    return bisect_int_fn(
+    return search_int_fn(
         lambda i: seq[i],
         target,
         low=low,
@@ -148,7 +148,7 @@ def bisect_seq(
     )
 
 
-def bisect_int_fn(
+def search_int_fn(
     fn: Callable[[int], L],
     target: L,
     *,
@@ -174,14 +174,14 @@ def bisect_int_fn(
         strictly greater than `target`.
     :param ordering: Whether the function outputs are "ascending" or "descending".
     """
-    return bisect_int_pred(
+    return search_int_pred(
         _make_pred(fn, target, side, ordering),
         low=low,
         high=high,
     )
 
 
-def bisect_int_pred(
+def search_int_pred(
     pred: Callable[[int], bool],
     *,
     low: int | None = None,
@@ -202,7 +202,7 @@ def bisect_int_pred(
         argument value is valid. If unset, an exponential search is performed for
         the lower bound - this may loop forever if no input argument is big enough to be valid.
     """
-    return _bisect_num_pred(
+    return _search_num_pred(
         pred,
         _int_suggest,
         low=low,
@@ -210,7 +210,7 @@ def bisect_int_pred(
     )
 
 
-def bisect_float_fn(
+def search_float_fn(
     fn: Callable[[float], L],
     target: L,
     *,
@@ -236,14 +236,14 @@ def bisect_float_fn(
         strictly greater than `target`.
     :param ordering: Whether the function outputs are "ascending" or "descending".
     """
-    return bisect_float_pred(
+    return search_float_pred(
         _make_pred(fn, target, side, ordering),
         low=low,
         high=high,
     )
 
 
-def bisect_float_pred(
+def search_float_pred(
     pred: Callable[[float], bool],
     *,
     low: float | None = None,
@@ -264,7 +264,7 @@ def bisect_float_pred(
         argument value is valid. If unset, an exponential search is performed for
         the lower bound - this may loop forever if no input argument is big enough to be valid.
     """
-    return _bisect_num_pred(
+    return _search_num_pred(
         pred,
         _float_suggest,
         low=low,
@@ -272,7 +272,7 @@ def bisect_float_pred(
     )
 
 
-def _bisect_num_pred(
+def _search_num_pred(
     pred: Callable[[N], bool],
     suggest: Callable[[N | None, N | None], N],
     *,
