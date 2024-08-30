@@ -1,11 +1,13 @@
 # pylint: disable=unnecessary-lambda-assignment
 
+from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from math import exp2, inf, log2, nextafter
 from sys import float_info
 from typing import (
     Any,
     Callable,
+    Generic,
     Literal,
     Protocol,
     Self,
@@ -27,59 +29,115 @@ Side: TypeAlias = Literal["left", "right"]
 Ordering: TypeAlias = Literal["ascending", "descending"]
 
 
-def prev_int(i: int) -> int:
-    return i - 1
+class _Operations(ABC, Generic[N]):
+
+    def __init__(self) -> None:
+        self.min_value: N | None
+        self.max_value: N | None
+        self.suggest_no_low_high: N
+
+    @abstractmethod
+    def suggest_no_low(self, high: N) -> N: ...
+
+    @abstractmethod
+    def suggest_no_high(self, low: N) -> N: ...
+
+    @abstractmethod
+    def suggest(self, low: N, high: N) -> N: ...
+
+    @abstractmethod
+    def prev(self, x: N) -> N: ...
 
 
-def prev_float(x: float) -> float:
-    return nextafter(x, -inf)
+class _IntegerOperations(_Operations[int]):
 
+    def __init__(
+        self,
+    ) -> None:
+        super().__init__()
+        self.min_value = None
+        self.max_value = None
+        self.suggest_no_low_high = 0
 
-def prev_num(x: N) -> N:
-    return prev_int(x) if isinstance(x, int) else prev_float(x)
-
-
-def _int_suggest(low: int | None, high: int | None) -> int:
-    if low is None:
-        if high is None:
-            return 0
+    def suggest_no_low(self, high: int) -> int:
         return min(2 * high, -16)
-    if high is None:
+
+    def suggest_no_high(self, low: int) -> int:
         return max(2 * low, 16)
-    return (low + high) // 2
+
+    def suggest(self, low: int, high: int) -> int:
+        return (low + high) // 2
+
+    def prev(self, x: int) -> int:
+        return x - 1
 
 
-def _nonnegative_float_suggest(low: float, high: float) -> float:
-    assert 0.0 <= low < high, (low, high)
-
-    log_low = log2(low if low != 0.0 else float_info.min)
-    log_high = log2(high)
-    if log_high - log_low > 1:
-        log_mid = log_low + (log_high - log_low) / 2
-        return exp2(log_mid)
-
-    return low + (high - low) / 2
+_INT_OPERATIONS = _IntegerOperations()
 
 
-def _float_suggest(low: float | None, high: float | None) -> float:
-    if low is None:
-        low = -float_info.max
-    if high is None:
-        high = float_info.max
+class _FloatOperations(_Operations[float]):
 
-    if low < 0.0 < high:
-        return 0.0
+    def __init__(
+        self,
+    ) -> None:
+        super().__init__()
+        self.min_value: float = -float_info.max
+        self.max_value: float = float_info.max
+        self.suggest_no_low_high: float = 0.0
 
-    mid = (
-        -_nonnegative_float_suggest(-high, -low)
-        if low < 0
-        else _nonnegative_float_suggest(low, high)
-    )
+    def suggest_no_low(self, high: float) -> float:
+        if high > 0.0:
+            return 0.0
+        if high > -2.0:
+            return -2.0
+        try:
+            return -(high**2)
+        except OverflowError:
+            return -float_info.max
 
-    if mid == high:  # Deal with rounding up...
-        mid = prev_float(mid)
+    def suggest_no_high(self, low: float) -> float:
+        if low < 0.0:
+            return 0.0
+        if low < 2.0:
+            return 2.0
+        try:
+            return low**2
+        except OverflowError:
+            return float_info.max
 
-    return mid
+    def _mid(self, x: float, y: float) -> float:
+        return x + (y - x) / 2
+
+    def _nonnegative_suggest(self, low: float, high: float) -> float:
+        assert 0.0 <= low < high, (low, high)
+
+        log_low = log2(low if low != 0.0 else float_info.min)
+        log_high = log2(high)
+        if log_high - log_low > 1:
+            return exp2(self._mid(log_low, log_high))
+
+        return self._mid(low, high)
+
+    def suggest(self, low: float, high: float) -> float:
+        if low < 0.0 < high:
+            return 0.0
+
+        mid = (
+            -self._nonnegative_suggest(-high, -low)
+            if low < 0
+            else self._nonnegative_suggest(low, high)
+        )
+
+        if mid == high:  # Deal with rounding up...
+            mid = self.prev(mid)
+
+        return mid
+
+    def prev(self, x: float) -> float:
+        return nextafter(x, -inf)
+
+
+_FLOAT_OPERATIONS = _FloatOperations()
 
 
 def _make_pred(
@@ -202,9 +260,9 @@ def search_int_pred(
         argument value is valid. If unset, an exponential search is performed for
         the lower bound - this may loop forever if no input argument is big enough to be valid.
     """
-    return _search_num_pred(
+    return _search_pred(
+        _INT_OPERATIONS,
         pred,
-        _int_suggest,
         low=low,
         high=high,
     )
@@ -264,17 +322,17 @@ def search_float_pred(
         argument value is valid. If unset, an exponential search is performed for
         the lower bound - this may loop forever if no input argument is big enough to be valid.
     """
-    return _search_num_pred(
+    return _search_pred(
+        _FLOAT_OPERATIONS,
         pred,
-        _float_suggest,
         low=low,
         high=high,
     )
 
 
-def _search_num_pred(
+def _search_pred(
+    ops: _Operations[N],
     pred: Callable[[N], bool],
-    suggest: Callable[[N | None, N | None], N],
     *,
     low: N | None,
     high: N | None,
@@ -284,14 +342,30 @@ def _search_num_pred(
         if low == high:
             return low
 
-    if low is not None and pred(low):
-        return low
+    low_ = low
+    if low_ is None and ops.min_value is not None:
+        low_ = ops.min_value
+    if low_ is not None and pred(low_):
+        return low_
 
-    if high is not None and not pred(prev_num(high)):
-        return high
+    high_ = high
+    if high_ is None and ops.max_value is not None:
+        high_ = ops.max_value
+    if high_ is not None and not pred(ops.prev(high_)):
+        return high_
 
     while True:
-        mid = suggest(low, high)
+        if low is None:
+            if high is None:
+                mid = ops.suggest_no_low_high
+            else:
+                mid = ops.suggest_no_low(high)
+        else:
+            if high is None:
+                mid = ops.suggest_no_high(low)
+            else:
+                mid = ops.suggest(low, high)
+
         if mid == low:
             break
         if not pred(mid):

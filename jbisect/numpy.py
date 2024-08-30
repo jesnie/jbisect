@@ -201,9 +201,9 @@ class _FloatOperations(_Operations[FD], Generic[FD]):
             (low < 0.0) & (0.0 < high),
             0.0,
             np.where(
-                low >= 0.0,
-                self._nonnegative_suggest(low, high),
+                low < 0.0,
                 -self._nonnegative_suggest(-high, -low),
+                self._nonnegative_suggest(low, high),
             ),
         )
         return np.where(result < high, result, np.nextafter(result, -inf))
@@ -475,8 +475,9 @@ def search_numpy_pred(
     result_valid |= ~p
     high_valid |= ~p
 
-    for _ in range(70):
+    while True:
         assert (low <= high).all(), (low, high)
+
         mid = _suggest(ops, low, low_valid, high, high_valid)
         if (result_valid | (low_valid & (mid == low))).all():
             break

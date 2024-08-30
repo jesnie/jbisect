@@ -1,4 +1,4 @@
-* align pure-python and NumPy implementations.
+* Silence numpy warnings
 * Interpolation
 * raise on "not found"
 * inf results
