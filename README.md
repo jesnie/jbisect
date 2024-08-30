@@ -53,8 +53,8 @@ sequence. These functions take the same `low`, `high`, `side` and `ordering` arg
 ```python
 from jbisect import search_int_fn, search_float_fn
 
-print(search_int_fn(lambda i: i * i, 16))
-print(search_float_fn(lambda i: i * i, 2.0))
+print(search_int_fn(lambda i: i * i, 16, low=0))
+print(search_float_fn(lambda i: i * i, 2.0, low=0.0))
 ```
 
 ## Searching predicates:
@@ -67,8 +67,8 @@ some `x` so that for all `y<x` `pred(y)` is `False`; and for all `y>=x` `pred(y)
 ```python
 from jbisect import search_int_pred, search_float_pred
 
-print(search_int_pred(lambda i: i * i >= 16))
-print(search_float_pred(lambda i: i * i >= 2.0))
+print(search_int_pred(lambda i: i * i >= 16, low=0))
+print(search_float_pred(lambda i: i * i >= 2.0, low=0.0))
 ```
 
 ## NumPy support:
