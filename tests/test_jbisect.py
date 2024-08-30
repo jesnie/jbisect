@@ -20,17 +20,17 @@ def test_search_int_pred() -> None:
 
 
 def test_search_int_fn() -> None:
-    assert search_int_fn(lambda i: i * i, 16) == 4
+    assert search_int_fn(lambda i: i * i, 16, low=0) == 4
 
     assert search_int_fn(lambda i: i * i, 16, low=4) == 4
     assert search_int_fn(lambda i: i * i, 16, low=5) == 5
 
-    assert search_int_fn(lambda i: i * i, 16, high=4) == 4
-    assert search_int_fn(lambda i: i * i, 16, high=3) == 3
+    assert search_int_fn(lambda i: i * i, 16, low=0, high=4) == 4
+    assert search_int_fn(lambda i: i * i, 16, low=0, high=3) == 3
 
-    assert search_int_fn(lambda i: i * i, 16, side="right") == 5
+    assert search_int_fn(lambda i: i * i, 16, low=0, side="right") == 5
 
-    assert search_int_fn(lambda i: -i * i, -16, ordering="descending") == 4
+    assert search_int_fn(lambda i: -i * i, -16, low=0, ordering="descending") == 4
 
 
 def test_search_seq() -> None:
@@ -60,14 +60,14 @@ def test_search_float_pred() -> None:
 
 
 def test_search_float_fn() -> None:
-    assert search_float_fn(lambda i: i * i, 16.0) == 4.0
+    assert search_float_fn(lambda i: i * i, 16.0, low=0.0) == 4.0
 
     assert search_float_fn(lambda i: i * i, 16.0, low=4.0) == 4.0
     assert search_float_fn(lambda i: i * i, 16.0, low=5.0) == 5.0
 
-    assert search_float_fn(lambda i: i * i, 16.0, high=4.0) == 4.0
-    assert search_float_fn(lambda i: i * i, 16.0, high=3.0) == 3.0
+    assert search_float_fn(lambda i: i * i, 16.0, low=0.0, high=4.0) == 4.0
+    assert search_float_fn(lambda i: i * i, 16.0, low=0.0, high=3.0) == 3.0
 
-    assert search_float_fn(lambda i: i * i, 16.0, side="right") == nextafter(4.0, inf)
+    assert search_float_fn(lambda i: i * i, 16.0, low=0.0, side="right") == nextafter(4.0, inf)
 
-    assert search_float_fn(lambda i: -i * i, -16.0, ordering="descending") == 4.0
+    assert search_float_fn(lambda i: -i * i, -16.0, low=0.0, ordering="descending") == 4.0

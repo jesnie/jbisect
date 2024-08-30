@@ -3,6 +3,7 @@ from collections.abc import Iterator, Mapping, Sequence
 from functools import cache
 from math import inf, nextafter
 from pathlib import Path
+from sys import float_info
 from typing import Any, Callable, Generic, ParamSpec, TypeAlias, TypeVar, cast
 
 import numpy as np
@@ -572,13 +573,28 @@ def make_cases() -> tuple[AnyCase, ...]:
         for value in values:
             result.extend(
                 make_int_cases(
-                    f"{name}_{value}", low, high, value, int_max_n_calls=15, float_max_n_calls=70
+                    f"{name}_{value}", low, high, value, int_max_n_calls=15, float_max_n_calls=80
                 )
             )
 
-    for name, flow, fhigh, fvalues in [("powers", 0.0, 1.0, [1 / (10**i) for i in range(5)])]:
+    for name, flow, fhigh, fvalues in [
+        ("powers", 0.0, 1.0, [1 / (10**i) for i in range(5)]),
+        (
+            "float_range",
+            -float_info.max,
+            float_info.max,
+            [
+                -float_info.min,
+                nextafter(-float_info.max, inf),
+                0.0,
+                float_info.min,
+                nextafter(float_info.max, -inf),
+                # float_info.max,
+            ],
+        ),
+    ]:
         for fvalue in fvalues:
-            result.extend(make_float_cases(f"{name}_{fvalue}", flow, fhigh, fvalue, max_n_calls=70))
+            result.extend(make_float_cases(f"{name}_{fvalue}", flow, fhigh, fvalue, max_n_calls=80))
 
     result.extend(
         make_int_cases(
@@ -587,10 +603,10 @@ def make_cases() -> tuple[AnyCase, ...]:
             10**100,
             31337,
             int_max_n_calls=500,
-            float_max_n_calls=70,
+            float_max_n_calls=80,
         )
     )
-    result.extend(make_float_cases("huge_scale", -1e-100, 1e100, 2e-52, max_n_calls=70))
+    result.extend(make_float_cases("huge_scale", -1e-100, 1e100, 2e-52, max_n_calls=80))
 
     for name, low, high, itv_values in [
         ("empty_interval", 0, 0, [(-2, -1), (-1, 1), (0, 0), (1, 2)]),
@@ -611,7 +627,7 @@ def make_cases() -> tuple[AnyCase, ...]:
                     left,
                     right,
                     int_max_n_calls=15,
-                    float_max_n_calls=70,
+                    float_max_n_calls=80,
                 )
             )
 
