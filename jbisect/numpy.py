@@ -226,20 +226,6 @@ def _get_operations(dtype: np.dtype[ND]) -> _Operations[ND]:
     raise ValueError(f"dtype {dtype} not supported.")
 
 
-def _suggest(
-    ops: _Operations[ND],
-    low: np.ndarray[S, np.dtype[ND]],
-    low_valid: np.ndarray[S, np.dtype[np.bool]],
-    high: np.ndarray[S, np.dtype[ND]],
-    high_valid: np.ndarray[S, np.dtype[np.bool]],
-) -> np.ndarray[S, np.dtype[ND]]:
-    return np.where(
-        low_valid,
-        np.where(high_valid, ops.suggest(low, high), ops.suggest_no_high(low)),
-        np.where(high_valid, ops.suggest_no_low(high), ops.suggest_no_low_high),
-    )
-
-
 def search_numpy_array(
     arr: npt.ArrayLike,
     target: npt.ArrayLike,
@@ -478,7 +464,12 @@ def search_numpy_pred(
     while True:
         assert (low <= high).all(), (low, high)
 
-        mid = _suggest(ops, low, low_valid, high, high_valid)
+        with np.errstate(all="ignore"):
+            mid = np.where(
+                low_valid,
+                np.where(high_valid, ops.suggest(low, high), ops.suggest_no_high(low)),
+                np.where(high_valid, ops.suggest_no_low(high), ops.suggest_no_low_high),
+            )
         if (result_valid | (low_valid & (mid == low))).all():
             break
 
