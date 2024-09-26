@@ -18,20 +18,22 @@ classifiers = [
 ]
 
 [tool.poetry.dependencies]
-numpy = {version = "<3,>=1.25", optional = true}
+check_shapes = {version = "<2,>=0.2.0", optional = true}
+numpy = {version = "<3,>=1.26", optional = true}
 python = "<4,>=3.12"
 
 
 [tool.poetry.group.dev.dependencies]
-black = "<25,>=24.8"
-compreq = "<0.4,>=0.3.1"
-isort = "<6,>=5.13"
-mypy = "<2,>=1.11"
-numpy = "<3,>=1.25"
-pylint = "<4,>=3.2"
-pytest = "<9,>=8.3"
-taskipy = "<2,>=1.13"
-tomlkit = "<0.14,>=0.13.0"
+black = "<24.9,>=24.8"
+check_shapes = "<2,>=0.2.0"
+compreq = "<0.3.2,>=0.3.1"
+isort = "<5.14,>=5.13"
+mypy = "<1.12,>=1.11"
+numpy = "<3,>=1.26"
+pylint = "<3.4,>=3.3"
+pytest = "<8.4,>=8.3"
+taskipy = "<1.14,>=1.13"
+tomlkit = "<0.13.3,>=0.13.2"
 
 [tool.poetry.extras]
 numpy = ["numpy"]
@@ -79,6 +81,7 @@ disable = [
   "too-many-branches",
   "too-many-lines",
   "too-many-locals",
+  "too-many-positional-arguments",
   "too-many-statements",
   "unhashable-member",
   "unsubscriptable-object",
