@@ -69,7 +69,7 @@ class _IntegerOperations(_Operations[ID], Generic[ID]):
         self,
         x: np.ndarray[S, np.dtype[ID]],
     ) -> np.ndarray[S, np.dtype[ID]]:
-        return np.where(x == self.min_value, x, x - 1)
+        return np.where(x == self.min_value, x, x - 1)  # type: ignore[return-value]
 
 
 class _SignedIntegerOperations(_IntegerOperations[SID], Generic[SID]):
@@ -92,7 +92,7 @@ class _SignedIntegerOperations(_IntegerOperations[SID], Generic[SID]):
                 2 * high,
                 -self._iinfo.bits,
             ),
-        )
+        )  # type: ignore[return-value]
 
     def suggest_no_high(
         self,
@@ -105,7 +105,7 @@ class _SignedIntegerOperations(_IntegerOperations[SID], Generic[SID]):
                 2 * low,
                 self._iinfo.bits,
             ),
-        )
+        )  # type: ignore[return-value]
 
     def suggest(
         self,
@@ -116,7 +116,7 @@ class _SignedIntegerOperations(_IntegerOperations[SID], Generic[SID]):
             (low < 0) & (0 <= high),
             (low + high) // 2,
             low + (high - low) // 2,
-        )
+        )  # type: ignore[return-value]
 
 
 class _UnsignedIntegerOperations(_IntegerOperations[UID], Generic[UID]):
@@ -145,7 +145,7 @@ class _UnsignedIntegerOperations(_IntegerOperations[UID], Generic[UID]):
                 2 * low,
                 self._iinfo.bits,
             ),
-        )
+        )  # type: ignore[return-value]
 
     def suggest(
         self,
@@ -171,13 +171,19 @@ class _FloatOperations(_Operations[FD], Generic[FD]):
         self,
         high: np.ndarray[S, np.dtype[FD]],
     ) -> np.ndarray[S, np.dtype[FD]]:
-        return np.maximum(np.where(high <= -2.0, -(high**2), -2.0), self._finfo.min)
+        return np.maximum(
+            np.where(high <= -2.0, -(high**2), -2.0),
+            self._finfo.min,
+        )  # type: ignore[return-value]
 
     def suggest_no_high(
         self,
         low: np.ndarray[S, np.dtype[FD]],
     ) -> np.ndarray[S, np.dtype[FD]]:
-        return np.minimum(np.where(low >= 2.0, low**2, 2.0), self._finfo.max)
+        return np.minimum(
+            np.where(low >= 2.0, low**2, 2.0),
+            self._finfo.max,
+        )  # type: ignore[return-value]
 
     def _nonnegative_suggest(
         self,
@@ -190,7 +196,7 @@ class _FloatOperations(_Operations[FD], Generic[FD]):
             log_high - log_low > 1,
             np.exp2(log_low + (log_high - log_low) / 2),
             low + (high - low) / 2,
-        )
+        )  # type: ignore[return-value]
 
     def suggest(
         self,
@@ -206,13 +212,17 @@ class _FloatOperations(_Operations[FD], Generic[FD]):
                 self._nonnegative_suggest(low, high),
             ),
         )
-        return np.where(result < high, result, np.nextafter(result, -inf))
+        return np.where(
+            result < high,
+            result,
+            np.nextafter(result, -inf),
+        )  # type: ignore[return-value]
 
     def prev(
         self,
         x: np.ndarray[S, np.dtype[FD]],
     ) -> np.ndarray[S, np.dtype[FD]]:
-        return np.where(x == self.min_value, x, np.nextafter(x, -inf))
+        return np.where(x == self.min_value, x, np.nextafter(x, -inf))  # type: ignore[return-value]
 
 
 def _get_operations(dtype: np.dtype[ND]) -> _Operations[ND]:
@@ -261,7 +271,7 @@ def search_numpy_array(
     dtype = np.uintp
 
     if len_ == 0:
-        return np.broadcast_to(np.asarray(0, dtype=dtype), shape)
+        return np.broadcast_to(np.asarray(0, dtype=dtype), shape)  # type: ignore[return-value]
 
     if low is None:
         low = 0
@@ -360,7 +370,7 @@ def search_numpy_fn(
         assert_never(ordering)
 
     return search_numpy_pred(
-        pred,
+        pred,  # type: ignore[arg-type]
         low=low,
         high=high,
         shape=shape,
@@ -445,7 +455,7 @@ def search_numpy_pred(
     else:
         low = np.broadcast_to(np.asarray(low, dtype=dtype), shape)
         low_valid = np.full(shape, True, dtype=np.bool_)
-    p = pred(low)
+    p = pred(low)  # type: ignore[arg-type]
     result = np.where(p, low, result)
     result_valid |= p
     low_valid |= p
@@ -456,7 +466,7 @@ def search_numpy_pred(
     else:
         high = np.broadcast_to(np.asarray(high, dtype=dtype), shape)
         high_valid = np.full(shape, True, dtype=np.bool_)
-    p = pred(ops.prev(high))
+    p = pred(ops.prev(high))  # type: ignore[arg-type]
     result = np.where(p, result, high)
     result_valid |= ~p
     high_valid |= ~p
@@ -473,11 +483,11 @@ def search_numpy_pred(
         if (result_valid | (low_valid & (mid == low))).all():
             break
 
-        p = pred(mid)
+        p = pred(mid)  # type: ignore[arg-type]
         low = np.where(p, low, mid)
         low_valid |= ~p
         high = np.where(p, mid, high)
         high_valid |= p
 
     assert (result_valid | high_valid).all(), (result_valid, high_valid)
-    return np.where(result_valid, result, high)
+    return np.where(result_valid, result, high)  # type: ignore[return-value]

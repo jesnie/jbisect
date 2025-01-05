@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python: ["3.12"]
+        python: ["3.12", "3.13"]
 
     name: test-${{ matrix.python }}
     steps:
@@ -26,7 +26,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python: ["3.12"]
+        python: ["3.12", "3.13"]
 
     name: test-install-${{ matrix.python }}
     steps:

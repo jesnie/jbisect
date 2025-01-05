@@ -23,6 +23,15 @@ print(
     )
 )
 
-print(search_numpy_fn(lambda i: i * i, 16, low=0, high=1000, shape=(), dtype=np.int64))
+print(
+    search_numpy_fn(
+        lambda i: i * i,  # type: ignore[arg-type,return-value]
+        16,
+        low=0,
+        high=1000,
+        shape=(),
+        dtype=np.int64,
+    )
+)
 
 print(search_numpy_pred(lambda i: i >= 4, shape=[], dtype=np.int64))
