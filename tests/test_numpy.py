@@ -66,7 +66,7 @@ def test_search_numpy_fn__shape() -> None:
     ).all()
     assert (
         search_numpy_fn(
-            lambda i: i * i,  # type: ignore[arg-type,return-value]
+            lambda i: i * i,
             [[[4, 6, 8, 10]]],
             low=[[[1], [2], [3]]],
             high=[[[3]], [[4]]],
@@ -108,7 +108,7 @@ def test_search_numpy_fn__high() -> None:
 def test_search_numpy_fn__side() -> None:
     assert (
         search_numpy_fn(
-            lambda i: i * i,  # type: ignore[arg-type,return-value]
+            lambda i: i * i,
             16,
             low=0,
             high=1000,
@@ -123,7 +123,7 @@ def test_search_numpy_fn__side() -> None:
 def test_search_numpy_fn__ordering() -> None:
     assert (
         search_numpy_fn(
-            lambda i: -i * i,  # type: ignore[arg-type,return-value]
+            lambda i: -i * i,
             -16,
             low=0,
             high=1000,

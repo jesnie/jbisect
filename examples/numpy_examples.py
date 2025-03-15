@@ -25,7 +25,7 @@ print(
 
 print(
     search_numpy_fn(
-        lambda i: i * i,  # type: ignore[arg-type,return-value]
+        lambda i: i * i,
         16,
         low=0,
         high=1000,

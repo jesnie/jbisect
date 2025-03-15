@@ -123,7 +123,7 @@ def raise_on_overflow(*args: Any, dtype: npt.DTypeLike) -> None:
 
 class Case(Generic[P, R]):
 
-    def __init__(
+    def __init__(  # type: ignore[valid-type]
         self,
         name: str,
         target: Callable[P, R],
@@ -685,7 +685,7 @@ def filter_cases() -> Sequence[AnyCase]:
 @cache
 def read_records() -> Mapping[str, Json]:
     with open(RECORD_FILE, "rt", encoding="utf-8") as f:
-        return json.load(f)  # type: ignore[no-any-return]
+        return json.load(f)
 
 
 def write_records() -> None:
