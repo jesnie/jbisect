@@ -132,7 +132,7 @@ class _UnsignedIntegerOperations(_IntegerOperations[UID], Generic[UID]):
         self,
         high: np.ndarray[S, np.dtype[UID]],
     ) -> np.ndarray[S, np.dtype[UID]]:
-        return cast(np.ndarray[S, np.dtype[UID]], high // 2)
+        return high // 2
 
     def suggest_no_high(
         self,
@@ -174,7 +174,7 @@ class _FloatOperations(_Operations[FD], Generic[FD]):
         return np.maximum(
             np.where(high <= -2.0, -(high**2), -2.0),
             self._finfo.min,
-        )  # type: ignore[return-value]
+        )
 
     def suggest_no_high(
         self,
@@ -183,7 +183,7 @@ class _FloatOperations(_Operations[FD], Generic[FD]):
         return np.minimum(
             np.where(low >= 2.0, low**2, 2.0),
             self._finfo.max,
-        )  # type: ignore[return-value]
+        )
 
     def _nonnegative_suggest(
         self,
@@ -290,7 +290,7 @@ def search_numpy_array(
     def fn(i: np.ndarray[S, np.dtype[np.uintp]]) -> np.ndarray[S, Any]:
         # TODO: Is there a simpler / more elegant way to do this?
         result = arr[ranges[:axis] + (i,) + ranges[axis:]]
-        return result  # type: ignore[no-any-return]
+        return result
 
     return search_numpy_fn(
         fn,

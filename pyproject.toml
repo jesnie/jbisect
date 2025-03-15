@@ -55,7 +55,9 @@ line-length = 100
 [tool.mypy]
 python_version = "3.12"
 show_error_codes = true
+# First we turn on *all the checks*, and then we turn off those that are too annoying.
 strict = true
+warn_return_any = false
 
 [[tool.mypy.overrides]]
 module = [
