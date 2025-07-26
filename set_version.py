@@ -14,7 +14,7 @@ def set_pyproject_version(version: Version) -> None:
     with open(PYPROJECT_FILE, "rt", encoding="utf-8") as fin:
         config: Any = tomlkit.load(fin)
 
-    config["tool"]["poetry"]["version"] = str(version)
+    config["project"]["version"] = str(version)
 
     with open(PYPROJECT_FILE, "wt", encoding="utf-8") as fout:
         tomlkit.dump(config, fout)

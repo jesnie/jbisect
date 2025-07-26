@@ -1,10 +1,12 @@
+# ruff: noqa: ERA001
+
 import json
-from collections.abc import Iterator, Mapping, Sequence
+from collections.abc import Callable, Iterator, Mapping, Sequence
 from functools import cache
 from math import inf, nextafter
 from pathlib import Path
 from sys import float_info
-from typing import Any, Callable, Generic, ParamSpec, TypeAlias, TypeVar, cast
+from typing import Any, ParamSpec, TypeVar, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -32,11 +34,10 @@ R = TypeVar("R")
 N = TypeVar("N", int, float)
 
 
-Json: TypeAlias = Any
+type Json = Any
 
 
-class CallRecorder(Generic[T, R]):
-
+class CallRecorder[T, R]:
     def __init__(self, fn: Callable[[T], R], name: str) -> None:
         self._fn = fn
         self._name = name
@@ -57,11 +58,11 @@ class CallRecorder(Generic[T, R]):
         return len(self.calls)
 
 
-def gt(x: N) -> CallRecorder[N, bool]:
+def gt[N: (int, float)](x: N) -> CallRecorder[N, bool]:
     return CallRecorder(lambda y: y > x, f"gt({x})")
 
 
-def le(x: N) -> CallRecorder[N, bool]:
+def le[N: (int, float)](x: N) -> CallRecorder[N, bool]:
     return CallRecorder(lambda y: y <= x, f"le({x})")
 
 
@@ -78,12 +79,11 @@ def itv(frm: N, to: N) -> CallRecorder[N, N]:
     return CallRecorder(f, f"itv({frm}, {to})")
 
 
-def slf(x: N) -> CallRecorder[N, N]:
+def slf[N: (int, float)](x: N) -> CallRecorder[N, N]:
     return CallRecorder(lambda y: y, f"slf({x})")
 
 
-def neg(x: N) -> CallRecorder[N, N]:
-
+def neg[N: (int, float)](x: N) -> CallRecorder[N, N]:
     def _neg(y: N) -> N:
         if y != 0 and -y == y:
             # Handle signed-int underflows:
@@ -121,8 +121,7 @@ def raise_on_overflow(*args: Any, dtype: npt.DTypeLike) -> None:
         np.array(values, dtype=dtype)
 
 
-class Case(Generic[P, R]):
-
+class Case[**P, R]:
     def __init__(  # type: ignore[valid-type]
         self,
         name: str,
@@ -172,8 +171,8 @@ class Case(Generic[P, R]):
         }
 
 
-AnyCase: TypeAlias = Case[Any, Any]
-CaseIter: TypeAlias = Iterator[AnyCase]
+type AnyCase = Case[Any, Any]
+type CaseIter = Iterator[AnyCase]
 
 
 def make_seq_cases(
@@ -204,8 +203,8 @@ def make_seq_cases(
             )
             try:
                 if isinstance(seq, str):
-                    seq_: Sequence[Any] = [ord(c) for c in cast(str, seq)]
-                    target_: Any = ord(cast(str, target))
+                    seq_: Sequence[Any] = [ord(c) for c in seq]
+                    target_: Any = ord(cast("str", target))
                 else:
                     seq_ = seq
                     target_ = target
