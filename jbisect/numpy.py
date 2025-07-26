@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from math import inf
-from typing import Any, Callable, Generic, TypeVar, assert_never, cast
+from typing import Any, TypeVar, assert_never, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -17,12 +17,11 @@ UID = TypeVar("UID", bound=np.unsignedinteger[Any])
 FD = TypeVar("FD", bound=np.floating[Any])
 
 
-def _cast_scalar(x: int | float | np.number[Any], dtype: np.dtype[ND]) -> ND:
-    return cast(ND, np.asarray(x, dtype=dtype))
+def _cast_scalar[ND: np.number[Any]](x: float | np.number[Any], dtype: np.dtype[ND]) -> ND:
+    return cast("ND", np.asarray(x, dtype=dtype))
 
 
-class _Operations(ABC, Generic[ND]):
-
+class _Operations[ND: np.number[Any]](ABC):
     def __init__(self) -> None:
         self.min_value: ND
         self.max_value: ND
@@ -54,8 +53,7 @@ class _Operations(ABC, Generic[ND]):
     ) -> np.ndarray[S, np.dtype[ND]]: ...
 
 
-class _IntegerOperations(_Operations[ID], Generic[ID]):
-
+class _IntegerOperations[ID: np.integer[Any]](_Operations[ID]):
     def __init__(
         self,
         dtype: np.dtype[ID],
@@ -72,8 +70,7 @@ class _IntegerOperations(_Operations[ID], Generic[ID]):
         return np.where(x == self.min_value, x, x - 1)  # type: ignore[return-value]
 
 
-class _SignedIntegerOperations(_IntegerOperations[SID], Generic[SID]):
-
+class _SignedIntegerOperations[SID: np.signedinteger[Any]](_IntegerOperations[SID]):
     def __init__(
         self,
         dtype: np.dtype[SID],
@@ -113,14 +110,13 @@ class _SignedIntegerOperations(_IntegerOperations[SID], Generic[SID]):
         high: np.ndarray[S, np.dtype[SID]],
     ) -> np.ndarray[S, np.dtype[SID]]:
         return np.where(
-            (low < 0) & (0 <= high),
+            (low < 0) & (high >= 0),
             (low + high) // 2,
             low + (high - low) // 2,
         )  # type: ignore[return-value]
 
 
-class _UnsignedIntegerOperations(_IntegerOperations[UID], Generic[UID]):
-
+class _UnsignedIntegerOperations[UID: np.unsignedinteger[Any]](_IntegerOperations[UID]):
     def __init__(
         self,
         dtype: np.dtype[UID],
@@ -155,8 +151,7 @@ class _UnsignedIntegerOperations(_IntegerOperations[UID], Generic[UID]):
         return low + (high - low) // 2
 
 
-class _FloatOperations(_Operations[FD], Generic[FD]):
-
+class _FloatOperations[FD: np.floating[Any]](_Operations[FD]):
     def __init__(
         self,
         dtype: np.dtype[FD],
@@ -204,7 +199,7 @@ class _FloatOperations(_Operations[FD], Generic[FD]):
         high: np.ndarray[S, np.dtype[FD]],
     ) -> np.ndarray[S, np.dtype[FD]]:
         result = np.where(
-            (low < 0.0) & (0.0 < high),
+            (low < 0.0) & (high > 0.0),
             0.0,
             np.where(
                 low < 0.0,
@@ -225,7 +220,7 @@ class _FloatOperations(_Operations[FD], Generic[FD]):
         return np.where(x == self.min_value, x, np.nextafter(x, -inf))  # type: ignore[return-value]
 
 
-def _get_operations(dtype: np.dtype[ND]) -> _Operations[ND]:
+def _get_operations[ND: np.number[Any]](dtype: np.dtype[ND]) -> _Operations[ND]:
     match dtype.kind:
         case "i":
             return _SignedIntegerOperations(dtype)  # type: ignore[type-var]
@@ -289,8 +284,7 @@ def search_numpy_array(
 
     def fn(i: np.ndarray[S, np.dtype[np.uintp]]) -> np.ndarray[S, Any]:
         # TODO: Is there a simpler / more elegant way to do this?
-        result = arr[ranges[:axis] + (i,) + ranges[axis:]]
-        return result
+        return arr[(*ranges[:axis], i, *ranges[axis:])]  # type: ignore[return-value]
 
     return search_numpy_fn(
         fn,
@@ -354,23 +348,31 @@ def search_numpy_fn(
 
     if ordering == "ascending":
         if side == "left":
-            pred = lambda x: target <= fn(x)
+
+            def pred(x: np.ndarray[S, np.dtype[ND]]) -> np.ndarray[S, np.dtype[np.bool]]:
+                return target <= fn(x)  # type: ignore[return-value]
         elif side == "right":
-            pred = lambda x: target < fn(x)
+
+            def pred(x: np.ndarray[S, np.dtype[ND]]) -> np.ndarray[S, np.dtype[np.bool]]:
+                return target < fn(x)  # type: ignore[return-value]
         else:
             assert_never(side)
     elif ordering == "descending":
         if side == "left":
-            pred = lambda x: fn(x) <= target
+
+            def pred(x: np.ndarray[S, np.dtype[ND]]) -> np.ndarray[S, np.dtype[np.bool]]:
+                return fn(x) <= target  # type: ignore[return-value]
         elif side == "right":
-            pred = lambda x: fn(x) < target
+
+            def pred(x: np.ndarray[S, np.dtype[ND]]) -> np.ndarray[S, np.dtype[np.bool]]:
+                return fn(x) < target  # type: ignore[return-value]
         else:
             assert_never(side)
     else:
         assert_never(ordering)
 
     return search_numpy_pred(
-        pred,  # type: ignore[arg-type]
+        pred,
         low=low,
         high=high,
         shape=shape,

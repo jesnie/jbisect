@@ -1,17 +1,13 @@
 # pylint: disable=unnecessary-lambda-assignment
 
 from abc import ABC, abstractmethod
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from math import exp2, inf, log2, nextafter
 from sys import float_info
 from typing import (
-    Any,
-    Callable,
-    Generic,
     Literal,
     Protocol,
     Self,
-    TypeAlias,
     TypeVar,
     assert_never,
 )
@@ -20,17 +16,16 @@ __version__ = "0.1.0"
 
 
 class SupportsLess(Protocol):
-    def __lt__(self, __other: Self) -> bool: ...
+    def __lt__(self, /, other: Self) -> bool: ...
 
 
 N = TypeVar("N", int, float)
 L = TypeVar("L", bound=SupportsLess)
-Side: TypeAlias = Literal["left", "right"]
-Ordering: TypeAlias = Literal["ascending", "descending"]
+type Side = Literal["left", "right"]
+type Ordering = Literal["ascending", "descending"]
 
 
-class _Operations(ABC, Generic[N]):
-
+class _Operations[N: (int, float)](ABC):
     def __init__(self) -> None:
         self.min_value: N | None
         self.max_value: N | None
@@ -50,7 +45,6 @@ class _Operations(ABC, Generic[N]):
 
 
 class _IntegerOperations(_Operations[int]):
-
     def __init__(
         self,
     ) -> None:
@@ -76,7 +70,6 @@ _INT_OPERATIONS = _IntegerOperations()
 
 
 class _FloatOperations(_Operations[float]):
-
     def __init__(
         self,
     ) -> None:
@@ -356,15 +349,11 @@ def _search_pred(
 
     while True:
         if low is None:
-            if high is None:
-                mid = ops.suggest_no_low_high
-            else:
-                mid = ops.suggest_no_low(high)
+            mid = ops.suggest_no_low_high if high is None else ops.suggest_no_low(high)
+        elif high is None:
+            mid = ops.suggest_no_high(low)
         else:
-            if high is None:
-                mid = ops.suggest_no_high(low)
-            else:
-                mid = ops.suggest(low, high)
+            mid = ops.suggest(low, high)
 
         if mid == low:
             break

@@ -1,11 +1,13 @@
-[tool.poetry]
+[project]
 name = "jbisect"
+requires-python = "<4,>=3.12"
 version = "0.1.0"
 description = "A python package for binary search"
-authors = ["Jesper Nielsen <jespernielsen1982+jbisect@gmail.com>"]
+authors = [
+    { name = "Jesper Nielsen", email = "jespernielsen1982+jbisect@gmail.com" }
+]
 license = "MIT"
 readme = "README.md"
-
 homepage = "https://github.com/jesnie/jbisect"
 repository = "https://github.com/jesnie/jbisect"
 
@@ -18,39 +20,81 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
 ]
 
-[tool.poetry.dependencies]
-check_shapes = {version = "<2,>=0.2.0", optional = true}
-numpy = {version = "<3,>=1.26", optional = true}
-python = "<4,>=3.12"
+dependencies = []
 
+[project.optional-dependencies]
+numpy = [
+    "numpy<3,>=2.0.0",
+]
 
-[tool.poetry.group.dev.dependencies]
-black = "<25.2,>=25.1"
-check_shapes = "<2,>=0.2.0"
-compreq = "<0.3.2,>=0.3.1"
-isort = "<6.1,>=6.0"
-mypy = "<1.16,>=1.15"
-numpy = "<3,>=1.26"
-pylint = "<3.4,>=3.3"
-pytest = "<8.4,>=8.3"
-taskipy = "<1.15,>=1.14"
-tomlkit = "<0.13.3,>=0.13.2"
-
-[tool.poetry.extras]
-numpy = ["numpy"]
+[dependency-groups]
+dev = [
+    "compreq<0.4.1,>=0.4.0",
+    "jbisect[numpy]",
+    "mypy<1.18,>=1.17",
+    "pytest<8.5,>=8.4",
+    "ruff<0.12.6,>=0.12.5",
+    "taskipy<1.15,>=1.14",
+    "tomlkit<0.13.4,>=0.13.3",
+]
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
-
-[tool.isort]
-py_version = 312
-profile = "black"
-
-[tool.black]
-target-version = ["py312"]
+[tool.ruff]
 line-length = 100
+indent-width = 4
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
+  "ANN401",  # Dynamically typed expressions (typing.Any) are disallowed
+  "ARG",  # Unused arguments...
+  "ARG002",  # Unused method argument: `context`
+  "C901",  # `get_lazy_release_set` is too complex
+  "COM812",  # Not recommended with formatting
+  "D",  # DocStrings
+  "E501",  # Line too long
+  "E741",  # Ambiguous variable name: `l`
+  "EM101",  # Exception must not use a string literal, assign to variable first
+  "EM102",  # Exception must not use an f-string literal, assign to variable first
+  "FBT",  # Boolean value in call
+  "FIX002",  # Line contains TODO, consider resolving the issue
+  "PLR0912",  # Too many branches
+  "PLR0913",  # Too many arguments in function definition (7 > 5)
+  "PLR0915",  # Too many statements (62 > 50)
+  "PLR2004",  # Magic value used in comparison, consider replacing `2` with a constant variable
+  "PLW0603",  # Using the global statement to update `_enabled` is discouraged
+  "PLW2901",  # `for` loop variable `name` overwritten by assignment target
+  "PT006",  # Wrong type passed to first argument of `pytest.mark.parametrize`; expected `tuple`
+  "PT011",  # `pytest.raises(ValueError)` is too broad, set the `match` parameter or use a more specific exception
+  "PT013",  # Incorrect import of `pytest`; use `import pytest` instead
+  "PT018",  # Assertion should be broken down into multiple parts
+  "PTH123",  # `open()` should be replaced by `Path.open()`
+  "PYI025",  # Use `from collections.abc import Set as AbstractSet` to avoid confusion with the `set` builtin
+  "RET505",  # Unnecessary `else` after `return` statement
+  "S101",  # Use of `assert` detected
+  "S610",  # Use of Django `extra` can lead to SQL injection vulnerabilities
+  "SIM108",  # Use ternary operator `...` instead of `if`-`else`-block
+  "SIM114",  # Combine `if` branches using logical `or` operator
+  "SLF001",  # Private member accessed: `_path`
+  "T201",  # `print` found
+  "TC001",  # Move application import `compreq.contexts.DistributionContext` into a type-checking block
+  "TC002",  # Move third-party import `packaging.version.Version` into a type-checking block
+  "TC003",  # Move standard library import `collections.abc.Iterator` into a type-checking block
+  "TD002",  # Missing author in TODO
+  "TD003",  # Missing issue link for this TODO
+  "TRY003",  # Avoid specifying long messages outside the exception class
+  "TRY301",  # Abstract `raise` to an inner functio
+  "UP015",  # Unnecessary modes
+]
+
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = [
+  "DTZ001",  # `datetime.datetime()` called without a `tzinfo` argument
+]
 
 [tool.mypy]
 python_version = "3.12"
@@ -64,69 +108,35 @@ module = [
 ]
 ignore_missing_imports = true
 
-[tool.pylint.messages_control]
-max-line-length = 100
-disable = [
-  "duplicate-code",
-  "fixme",
-  "global-statement",
-  "inconsistent-return-statements",
-  "invalid-name",
-  "invalid-str-returned",
-  "missing-class-docstring",
-  "missing-function-docstring",
-  "missing-module-docstring",
-  "no-else-return",
-  "no-member",
-  "too-few-public-methods",
-  "too-many-arguments",
-  "too-many-boolean-expressions",
-  "too-many-branches",
-  "too-many-lines",
-  "too-many-locals",
-  "too-many-positional-arguments",
-  "too-many-statements",
-  "unhashable-member",
-  "unsubscriptable-object",
-  "unsupported-membership-test",
-  "unused-argument",
-  "use-implicit-booleaness-not-comparison",
-]
-
-
 [tool.taskipy.tasks]
-isort = """
-    echo XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX isort XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-    isort jbisect examples tests set_version.py requirements.py
+ruff_fmt = """
+    echo XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX ruff format XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+    ruff format jbisect tests set_version.py requirements.py
 """
-isort_check = """
-    echo XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX isort XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-    isort --check-only jbisect examples tests set_version.py requirements.py
+ruff_fmt_check = """
+    echo XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX ruff format XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+    ruff format --check jbisect tests set_version.py requirements.py
 """
-black = """
-    echo XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX black XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-    black jbisect examples tests set_version.py requirements.py
+ruff_lint = """
+    echo XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX ruff lint XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+    ruff check --fix-only jbisect tests set_version.py requirements.py
 """
-black_check = """
-    echo XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX black XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-    black --check jbisect examples tests set_version.py requirements.py
+ruff_lint_check = """
+    echo XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX ruff lint XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+    ruff check jbisect tests set_version.py requirements.py
 """
 mypy = """
     echo XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX mypy XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-    mypy jbisect examples tests set_version.py requirements.py
-"""
-pylint = """
-    echo XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX pylint XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-    pylint jbisect examples tests set_version.py requirements.py
+    mypy jbisect tests set_version.py requirements.py
 """
 pytest = """
     echo XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX pytest XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
     pytest tests
 """
 
-format = "task isort && task black"
-format_check = "task isort_check && task black_check"
-lint = "task format_check && task mypy && task pylint"
+format = "task ruff_fmt && task ruff_lint"
+format_check = "task ruff_fmt_check"
+lint = "task format_check && task mypy && task ruff_lint_check"
 test = "task lint && task pytest"
 format_and_lint = "task format && task lint"
 format_and_test = "task format && task test"
