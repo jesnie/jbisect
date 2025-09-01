@@ -24,7 +24,7 @@ dependencies = []
 
 [project.optional-dependencies]
 numpy = [
-    "numpy<3,>=2.0.0",
+    "numpy<3,>=2.1.0",
 ]
 
 [dependency-groups]
@@ -33,7 +33,7 @@ dev = [
     "jbisect[numpy]",
     "mypy<1.18,>=1.17",
     "pytest<8.5,>=8.4",
-    "ruff<0.12.6,>=0.12.5",
+    "ruff<0.12.12,>=0.12.11",
     "taskipy<1.15,>=1.14",
     "tomlkit<0.13.4,>=0.13.3",
 ]
